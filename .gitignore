@@ -22,7 +22,7 @@ go.work
 dist/
 
 # Config file
-config.yaml
+config.toml
 
 # SSH Key folder
 .ssh/
