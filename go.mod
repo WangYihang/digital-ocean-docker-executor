@@ -5,9 +5,11 @@ go 1.21.6
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/digitalocean/godo v1.108.0
+	github.com/jessevdk/go-flags v1.5.0
 	github.com/jszwec/csvutil v1.9.0
 	github.com/pkg/sftp v1.13.5
 	golang.org/x/crypto v0.14.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
