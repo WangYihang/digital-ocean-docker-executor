@@ -72,6 +72,7 @@ func (d *DigitalOcean) CreateDroplet(name, region, size, image, pubkey string, t
 		Tags: []string{
 			tag,
 		},
+		IPv6: true,
 	})
 	if err != nil {
 		log.Error("error occured while creating droplet", "error", err.Error())
