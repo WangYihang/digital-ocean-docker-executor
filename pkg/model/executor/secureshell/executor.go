@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/util/sshutil"
 	"github.com/charmbracelet/log"
@@ -136,26 +137,30 @@ func (s *SSHExecutor) RunCommand(cmd string) (string, string, error) {
 	stdoutBuffer := bytes.NewBuffer(nil)
 	stderrBuffer := bytes.NewBuffer(nil)
 
+	wg := &sync.WaitGroup{}
+
 	copyOutput := func(filename string, r *bufio.Reader, buffer *bytes.Buffer) {
-		for {
-			scanner := bufio.NewScanner(r)
-			for scanner.Scan() {
-				text := scanner.Text()
-				log.Info("output", filename, text)
-				buffer.WriteString(text)
-			}
-			if err := scanner.Err(); err != nil {
-				log.Error("Error reading output: %v", err)
-			}
+		defer wg.Done()
+		scanner := bufio.NewScanner(r)
+		for scanner.Scan() {
+			text := scanner.Text()
+			log.Info("output", filename, text)
+			buffer.WriteString(text)
+		}
+		if err := scanner.Err(); err != nil {
+			log.Error("Error reading output: %v", err)
 		}
 	}
 
+	wg.Add(2)
 	go copyOutput("stdout", bufio.NewReader(stdoutPipe), stdoutBuffer)
 	go copyOutput("stderr", bufio.NewReader(stderrPipe), stderrBuffer)
 
 	if err := session.Wait(); err != nil {
 		return "", "", err
 	}
+
+	wg.Wait()
 
 	return stdoutBuffer.String(), stderrBuffer.String(), nil
 }
