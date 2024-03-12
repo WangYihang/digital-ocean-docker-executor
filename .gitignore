@@ -29,3 +29,6 @@ config.toml
 
 # Data file
 data/
+
+# Visual Studio Code
+.vscode/
