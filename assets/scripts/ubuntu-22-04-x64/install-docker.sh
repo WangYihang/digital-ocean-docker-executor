@@ -2,8 +2,14 @@
 
 # Check if docker is not installed
 if ! [ -x "$(command -v docker)" ]; then
+    # Wait for apt and apt-get processes to finish
+    while pgrep -x apt > /dev/null || pgrep -x apt-get > /dev/null; do
+        echo "Waiting for other apt or apt-get processes to finish..."
+        sleep 1
+    done
+
     sudo apt update
-    for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove $pkg; done
+    for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt remove $pkg; done
     sudo apt install -y ca-certificates curl
     sudo install -m 0755 -d /etc/apt/keyrings
     sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
