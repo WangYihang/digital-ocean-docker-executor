@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/digitalocean/godo"
@@ -14,6 +15,14 @@ func NewServer(droplet *godo.Droplet) *Server {
 	return &Server{
 		droplet: droplet,
 	}
+}
+
+func (s *Server) ID() string {
+	return fmt.Sprintf("%d", s.droplet.ID)
+}
+
+func (s *Server) Name() string {
+	return s.droplet.Name
 }
 
 func (s *Server) IPv4() string {
