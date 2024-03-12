@@ -4,7 +4,6 @@ import (
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/config"
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/server"
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/util/sshutil"
-	"github.com/charmbracelet/log"
 )
 
 type Provider struct {
@@ -21,7 +20,31 @@ func (p *Provider) ListServers() []server.Server {
 	servers := []server.Server{}
 	remoteServers := p.do.ListDroplets()
 	for _, remoteServer := range remoteServers {
-		servers = append(servers, NewServer(&remoteServer))
+		servers = append(servers, NewServer(remoteServer))
+	}
+	return servers
+}
+
+func (p *Provider) ListServersByName(name string) []server.Server {
+	servers := []server.Server{}
+	remoteServers := p.ListServers()
+	for _, remoteServer := range remoteServers {
+		if remoteServer.Name() == name {
+			servers = append(servers, remoteServer)
+		}
+	}
+	return servers
+}
+
+func (p *Provider) ListServersByTag(tag string) []server.Server {
+	servers := []server.Server{}
+	remoteServers := p.ListServers()
+	for _, remoteServer := range remoteServers {
+		for _, remoteServerTag := range remoteServer.Tags() {
+			if remoteServerTag == tag {
+				servers = append(servers, remoteServer)
+			}
+		}
 	}
 	return servers
 }
@@ -31,17 +54,10 @@ func (p *Provider) CreateKeyPair(name string, pubkey string) error {
 	return err
 }
 
-func (p *Provider) CreateServer(name string) (server.Server, error) {
+func (p *Provider) CreateServer(name string, tag string) (server.Server, error) {
 	pubkey, _, err := sshutil.LoadOrCreateSSHKeyPair(config.Cfg.DigitalOcean.SSH.Key.Folder, config.Cfg.DigitalOcean.SSH.Key.Name)
 	if err != nil {
 		return nil, err
-	}
-
-	for _, s := range p.ListServers() {
-		if s.Name() == name {
-			log.Info("server wiht given name already exists", "id", s.ID(), "name", s.Name(), "ipv4", s.IPv4(), "ipv6", s.IPv6())
-			return s, nil
-		}
 	}
 
 	droplet, err := p.do.CreateDroplet(
@@ -50,12 +66,12 @@ func (p *Provider) CreateServer(name string) (server.Server, error) {
 		config.Cfg.DigitalOcean.Droplet.Size,
 		config.Cfg.DigitalOcean.Droplet.Image,
 		pubkey,
-		config.Cfg.DigitalOcean.Droplet.Tags,
+		tag,
 	)
 	if err != nil {
 		return nil, err
 	}
-	server := NewServer(droplet)
+	server := NewServer(*droplet)
 	return server, nil
 }
 

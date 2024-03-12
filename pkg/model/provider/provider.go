@@ -8,8 +8,10 @@ import (
 
 type CloudServiceProvider interface {
 	CreateKeyPair(name string, pub string) error
-	CreateServer(name string) (server.Server, error)
+	CreateServer(name string, tag string) (server.Server, error)
 	ListServers() []server.Server
+	ListServersByName(name string) []server.Server
+	ListServersByTag(tag string) []server.Server
 	DestroyServerByName(name string) error
 	DestroyServerByTag(tag string) error
 }

@@ -43,7 +43,7 @@ func (d *DigitalOcean) CreateSSHKeyPair(name string, pubkey string) (*godo.Key, 
 	return key, nil
 }
 
-func (d *DigitalOcean) CreateDroplet(name, region, size, image, pubkey string, tags []string) (*godo.Droplet, error) {
+func (d *DigitalOcean) CreateDroplet(name, region, size, image, pubkey string, tag string) (*godo.Droplet, error) {
 	var err error
 	fingerprint, err := sshutil.GetSSHPublicKeyFingerprintMD5(pubkey)
 	if err != nil {
@@ -69,7 +69,9 @@ func (d *DigitalOcean) CreateDroplet(name, region, size, image, pubkey string, t
 				Fingerprint: key.Fingerprint,
 			},
 		},
-		Tags: tags,
+		Tags: []string{
+			tag,
+		},
 	})
 	if err != nil {
 		log.Error("error occured while creating droplet", "error", err.Error())
@@ -86,7 +88,7 @@ func (d *DigitalOcean) CreateDroplet(name, region, size, image, pubkey string, t
 		}
 		ip, _ := gd.PublicIPv4()
 		status = gd.Status
-		log.Warn("waiting", "droplet_id", gd.ID, "ip", ip, "status", status, "num_tries", numTries)
+		log.Debug("waiting", "droplet_id", gd.ID, "ip", ip, "status", status, "num_tries", numTries)
 		time.Sleep(1 * time.Second)
 		numTries++
 	}

@@ -8,10 +8,10 @@ import (
 )
 
 type Server struct {
-	droplet *godo.Droplet
+	droplet godo.Droplet
 }
 
-func NewServer(droplet *godo.Droplet) *Server {
+func NewServer(droplet godo.Droplet) *Server {
 	return &Server{
 		droplet: droplet,
 	}
