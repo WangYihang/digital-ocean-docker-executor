@@ -4,6 +4,7 @@ import (
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/config"
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/server"
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/util/sshutil"
+	"github.com/charmbracelet/log"
 )
 
 type Provider struct {
@@ -35,6 +36,14 @@ func (p *Provider) CreateServer(name string) (server.Server, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	for _, s := range p.ListServers() {
+		if s.Name() == name {
+			log.Info("server wiht given name already exists", "id", s.ID(), "name", s.Name(), "ipv4", s.IPv4(), "ipv6", s.IPv6())
+			return s, nil
+		}
+	}
+
 	droplet, err := p.do.CreateDroplet(
 		name,
 		config.Cfg.DigitalOcean.Droplet.Region,
