@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -12,8 +13,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type Project struct {
+	Name string `json:"name" toml:"name" yaml:"name"`
+}
+
 type Config struct {
 	DigitalOcean DigitalOcean `json:"digitalocean" toml:"digitalocean" yaml:"digitalocean"`
+	Project      Project      `json:"project" toml:"project" yaml:"project"`
 }
 
 type DigitalOcean struct {
@@ -28,11 +34,10 @@ type DropletConfig struct {
 	Region string `json:"region" toml:"region" yaml:"region"`
 	Size   string `json:"size" toml:"size" yaml:"size"`
 	Image  string `json:"image" toml:"image" yaml:"image"`
-	Tag    string `json:"tag" toml:"tag" yaml:"tag"`
 }
 
 type SSHConfig struct {
-	Key  SSHKeyConfig `json:"ssh_key" toml:"ssh_key" yaml:"ssh_key"`
+	Key  SSHKeyConfig `json:"key" toml:"key" yaml:"key"`
 	Port int          `json:"port" toml:"port" yaml:"port"`
 	User string       `json:"user" toml:"user" yaml:"user"`
 }
@@ -44,13 +49,6 @@ type SSHKeyConfig struct {
 
 var Cfg Config
 
-func loadToml(path string) {
-	if _, err := toml.DecodeFile(path, &Cfg); err != nil {
-		slog.Error("error occured while decoding config file", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-}
-
 func readFile(path string) ([]byte, error) {
 	fd, err := os.Open(path)
 	if err != nil {
@@ -61,6 +59,13 @@ func readFile(path string) ([]byte, error) {
 		return nil, err
 	}
 	return content, nil
+}
+
+func loadToml(path string) {
+	if _, err := toml.DecodeFile(path, &Cfg); err != nil {
+		slog.Error("error occured while decoding config file", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 }
 
 func loadJson(path string) {
@@ -104,4 +109,5 @@ func init() {
 		slog.Error("unsupported config file extension", slog.String("extension", extension))
 		os.Exit(1)
 	}
+	fmt.Println(Cfg)
 }
