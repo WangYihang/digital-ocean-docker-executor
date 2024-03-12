@@ -5,20 +5,22 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
-	"log/slog"
 	"os"
+	"path/filepath"
 
+	"github.com/WangYihang/digital-ocean-docker-executor/pkg/util/sshutil"
+	"github.com/charmbracelet/log"
+	"github.com/google/uuid"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
 
 type SSHExecutor struct {
-	IP      string
-	Port    int
-	User    string
-	KeyPath string
-	client  *ssh.Client
+	IP         string
+	Port       int
+	User       string
+	KeyPath    string
+	connection *sshutil.SSHConnection
 }
 
 func NewSSHExecutor(ip string, port int, user string, keyPath string) *SSHExecutor {
@@ -27,7 +29,6 @@ func NewSSHExecutor(ip string, port int, user string, keyPath string) *SSHExecut
 		Port:    port,
 		User:    user,
 		KeyPath: keyPath,
-		client:  nil,
 	}
 }
 
@@ -41,60 +42,77 @@ func (s *SSHExecutor) String() string {
 	)
 }
 
-func (s *SSHExecutor) IsConnected() bool {
-	return s.client != nil
-}
-
-func (s *SSHExecutor) Connect() error {
-	if s.IsConnected() {
-		return nil
-	}
-	addr := fmt.Sprintf("%s:%d", s.IP, s.Port)
+func (s *SSHExecutor) GetConfig() (*ssh.ClientConfig, error) {
 	key, err := os.ReadFile(s.KeyPath)
 	if err != nil {
-		slog.Error("error occured when reading key", slog.String("error", err.Error()))
-		return err
+		return nil, err
 	}
 	signer, err := ssh.ParsePrivateKey(key)
 	if err != nil {
-		slog.Error("error occured when parsing key", slog.String("error", err.Error()))
-		return err
+		return nil, err
 	}
-	config := &ssh.ClientConfig{
+	return &ssh.ClientConfig{
 		User: s.User,
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(signer),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}, nil
+}
+
+// Connect now uses the SSHConnectionPool to get the connection
+func (s *SSHExecutor) Connect() error {
+	// Using the connection pool to get the connection
+	pool := sshutil.GetSSHConnectionPool()
+
+	// Creating SSHConnIdentifier
+	identifier := sshutil.SSHConnIdentifier{
+		Host: s.IP,
+		Port: s.Port,
+		User: s.User,
 	}
-	slog.Info("connecting", slog.String("addr", addr), slog.String("user", s.User), slog.String("key", s.KeyPath))
-	client, err := ssh.Dial("tcp", addr, config)
+
+	// Getting the config
+	config, err := s.GetConfig()
 	if err != nil {
-		slog.Error("error occured when dialing", slog.String("error", err.Error()))
 		return err
 	}
-	slog.Info("connected", slog.String("addr", addr), slog.String("user", s.User), slog.String("key", s.KeyPath))
-	s.client = client
+
+	// Getting the connection from the pool
+	sshConnection, err := pool.GetConnection(identifier, config)
+	if err != nil {
+		return err
+	}
+
+	// Storing the ssh.Client from the pool
+	s.connection = sshConnection
 	return nil
 }
 
-func (s *SSHExecutor) InstallDocker() error {
-	err := s.UploadFile("assets/scripts/ubuntu_setup_docker.sh", "/tmp/ubuntu_setup_docker.sh")
+func (s *SSHExecutor) RunExecutable(path string) error {
+	targetExecutablePath := filepath.Join(
+		"/tmp",
+		"dode",
+		uuid.New().String(),
+	)
+	err := s.UploadFile(path, targetExecutablePath)
 	if err != nil {
 		return err
 	}
-	_, _, err = s.RunCommand("bash -x /tmp/ubuntu_setup_docker.sh", true)
+	_, _, err = s.RunCommand(fmt.Sprintf("chmod -x %s", targetExecutablePath))
+	if err != nil {
+		return err
+	}
+	_, _, err = s.RunCommand(targetExecutablePath)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *SSHExecutor) RunCommand(cmd string, debug bool) (string, string, error) {
-	if debug {
-		slog.Info("running command", slog.String("command", cmd))
-	}
-	session, err := s.client.NewSession()
+func (s *SSHExecutor) RunCommand(cmd string) (string, string, error) {
+	log.Info("execute", "cmd", cmd)
+	session, err := s.connection.Client.NewSession()
 	if err != nil {
 		return "", "", err
 	}
@@ -118,24 +136,22 @@ func (s *SSHExecutor) RunCommand(cmd string, debug bool) (string, string, error)
 	stdoutBuffer := bytes.NewBuffer(nil)
 	stderrBuffer := bytes.NewBuffer(nil)
 
-	copyOutput := func(r *bufio.Reader, buffer *bytes.Buffer) {
+	copyOutput := func(filename string, r *bufio.Reader, buffer *bytes.Buffer) {
 		for {
 			scanner := bufio.NewScanner(r)
 			for scanner.Scan() {
-				line := scanner.Text()
-				if debug {
-					fmt.Println(line)
-				}
-				buffer.WriteString(line)
+				text := scanner.Text()
+				log.Info("output", filename, text)
+				buffer.WriteString(text)
 			}
 			if err := scanner.Err(); err != nil {
-				log.Printf("Error reading output: %v", err)
+				log.Error("Error reading output: %v", err)
 			}
 		}
 	}
 
-	go copyOutput(bufio.NewReader(stdoutPipe), stdoutBuffer)
-	go copyOutput(bufio.NewReader(stderrPipe), stderrBuffer)
+	go copyOutput("stdout", bufio.NewReader(stdoutPipe), stdoutBuffer)
+	go copyOutput("stderr", bufio.NewReader(stderrPipe), stderrBuffer)
 
 	if err := session.Wait(); err != nil {
 		return "", "", err
@@ -145,7 +161,7 @@ func (s *SSHExecutor) RunCommand(cmd string, debug bool) (string, string, error)
 }
 
 func (s *SSHExecutor) UploadFile(localFilePath, remoteFilePath string) error {
-	sftpClient, err := sftp.NewClient(s.client)
+	sftpClient, err := sftp.NewClient(s.connection.Client)
 	if err != nil {
 		return err
 	}
@@ -168,7 +184,7 @@ func (s *SSHExecutor) UploadFile(localFilePath, remoteFilePath string) error {
 }
 
 func (s *SSHExecutor) DownloadFile(remoteFilePath, localFilePath string) error {
-	sftpClient, err := sftp.NewClient(s.client)
+	sftpClient, err := sftp.NewClient(s.connection.Client)
 	if err != nil {
 		return err
 	}
@@ -191,5 +207,5 @@ func (s *SSHExecutor) DownloadFile(remoteFilePath, localFilePath string) error {
 }
 
 func (s *SSHExecutor) Close() error {
-	return s.client.Close()
+	return s.connection.Client.Close()
 }
