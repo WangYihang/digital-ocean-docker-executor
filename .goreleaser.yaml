@@ -16,7 +16,10 @@ before:
     - go generate ./...
 
 builds:
-  - env:
+  - id: dode
+    main: cmd/dode/main.go
+    binary: dode
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
