@@ -10,7 +10,7 @@ import (
 func main() {
 	p := digitalocean.NewProvider()
 	s := scheduler.New().WithProvider(p)
-	for t := range docker_task.Generate(config.Cfg.Project.Name) {
+	for t := range docker_task.Generate(config.Cfg.Task.Label) {
 		s.SubmitDockerTask(t)
 	}
 	s.Wait()

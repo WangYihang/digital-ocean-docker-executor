@@ -13,13 +13,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Project struct {
-	Name string `json:"name" toml:"name" yaml:"name"`
+type Task struct {
+	Label string `json:"label" toml:"label" yaml:"label"`
 }
 
 type Config struct {
 	DigitalOcean DigitalOcean `json:"digitalocean" toml:"digitalocean" yaml:"digitalocean"`
-	Project      Project      `json:"project" toml:"project" yaml:"project"`
+	Task         Task         `json:"project" toml:"project" yaml:"project"`
 }
 
 type DigitalOcean struct {
@@ -30,11 +30,11 @@ type DigitalOcean struct {
 }
 
 type DropletConfig struct {
-	Name   string   `json:"name" toml:"name" yaml:"name"`
-	Region string   `json:"region" toml:"region" yaml:"region"`
-	Size   string   `json:"size" toml:"size" yaml:"size"`
-	Image  string   `json:"image" toml:"image" yaml:"image"`
-	Tags   []string `json:"tags" toml:"tags" yaml:"tags"`
+	Name   string `json:"name" toml:"name" yaml:"name"`
+	Region string `json:"region" toml:"region" yaml:"region"`
+	Size   string `json:"size" toml:"size" yaml:"size"`
+	Image  string `json:"image" toml:"image" yaml:"image"`
+	Tag    string `json:"tag" toml:"tag" yaml:"tag"`
 }
 
 type SSHConfig struct {

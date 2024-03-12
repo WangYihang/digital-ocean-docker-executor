@@ -1,18 +1,18 @@
-project:
-  name: example
+task:
+  label: ping
 
 digitalocean:
   token: dop_v1_0000000000000000000000000000000000000000000000000000000000000000
   destroy: true
   droplet:
-    name: example
+    name: executor
     region: nyc3
     size: s-1vcpu-1gb
     image: ubuntu-22-04-x64
-    tags: ["example"]
+    tag: "executor"
   ssh:
     key:
-      name: example
+      name: executor
       folder: .ssh
     port: 22
     user: root
