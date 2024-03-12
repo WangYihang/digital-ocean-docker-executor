@@ -170,6 +170,7 @@ func (s *SSHExecutor) RunCommand(cmd string) (string, string, error) {
 }
 
 func (s *SSHExecutor) UploadFile(localFilePath, remoteFilePath string) error {
+	log.Info("uploading file", "local", localFilePath, "remote", remoteFilePath)
 	sftpClient, err := sftp.NewClient(s.connection.Client)
 	if err != nil {
 		return err
@@ -193,6 +194,7 @@ func (s *SSHExecutor) UploadFile(localFilePath, remoteFilePath string) error {
 }
 
 func (s *SSHExecutor) DownloadFile(remoteFilePath, localFilePath string) error {
+	log.Info("downloading file", "remote", remoteFilePath, "local", localFilePath)
 	sftpClient, err := sftp.NewClient(s.connection.Client)
 	if err != nil {
 		return err
