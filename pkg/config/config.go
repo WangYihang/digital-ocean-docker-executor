@@ -98,17 +98,16 @@ func init() {
 	extension := filepath.Ext(configFilePath)
 	switch extension {
 	case ".toml":
-		log.Info("loading toml config file", "path", configFilePath)
 		loadToml(configFilePath)
+		log.Info("config file loaded", "path", configFilePath)
 	case ".json":
-		log.Info("loading json config file", "path", configFilePath)
 		loadJson(configFilePath)
+		log.Info("config file loaded", "path", configFilePath)
 	case ".yaml":
-		log.Info("loading yaml config file", "path", configFilePath)
 		loadYaml(configFilePath)
+		log.Info("config file loaded", "path", configFilePath)
 	default:
 		log.Error("unsupported config file extension", "extension", extension)
 		os.Exit(1)
 	}
-	log.Info("config file loaded", "path", configFilePath)
 }

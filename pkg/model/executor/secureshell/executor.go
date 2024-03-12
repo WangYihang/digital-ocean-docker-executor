@@ -91,16 +91,20 @@ func (s *SSHExecutor) Connect() error {
 }
 
 func (s *SSHExecutor) RunExecutable(path string) error {
+	log.Info("running executable", "path", path)
 	targetExecutablePath := filepath.Join(
 		"/tmp",
 		"dode",
 		uuid.New().String(),
 	)
+	s.RunCommand("mkdir -p " + filepath.Dir(targetExecutablePath))
+	log.Info("uploading executable", "src", path, "dst", targetExecutablePath)
 	err := s.UploadFile(path, targetExecutablePath)
 	if err != nil {
 		return err
 	}
-	_, _, err = s.RunCommand(fmt.Sprintf("chmod -x %s", targetExecutablePath))
+	log.Info("changing permissions", "path", targetExecutablePath)
+	_, _, err = s.RunCommand(fmt.Sprintf("chmod +x %s", targetExecutablePath))
 	if err != nil {
 		return err
 	}
@@ -112,7 +116,7 @@ func (s *SSHExecutor) RunExecutable(path string) error {
 }
 
 func (s *SSHExecutor) RunCommand(cmd string) (string, string, error) {
-	log.Info("execute", "cmd", cmd)
+	log.Info("running command", "cmd", cmd)
 	session, err := s.connection.Client.NewSession()
 	if err != nil {
 		return "", "", err
