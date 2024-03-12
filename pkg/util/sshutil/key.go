@@ -74,15 +74,15 @@ func LoadSSHKeyPair(folder, name string) (string, string, error) {
 	if strings.Contains(name, "/") {
 		return "", "", fmt.Errorf("name should not contain '/'")
 	}
-	privkey, err := os.ReadFile(filepath.Join(folder, name))
-	if err != nil {
-		return "", "", err
-	}
 	pubkey, err := os.ReadFile(filepath.Join(folder, fmt.Sprintf("%s.pub", name)))
 	if err != nil {
 		return "", "", err
 	}
-	return string(privkey), string(pubkey), nil
+	privkey, err := os.ReadFile(filepath.Join(folder, name))
+	if err != nil {
+		return "", "", err
+	}
+	return string(pubkey), string(privkey), nil
 }
 
 func LoadOrCreateSSHKeyPair(folder, name string) (string, string, error) {
