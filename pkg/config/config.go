@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/option"
+	"github.com/charmbracelet/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -30,10 +30,11 @@ type DigitalOcean struct {
 }
 
 type DropletConfig struct {
-	Name   string `json:"name" toml:"name" yaml:"name"`
-	Region string `json:"region" toml:"region" yaml:"region"`
-	Size   string `json:"size" toml:"size" yaml:"size"`
-	Image  string `json:"image" toml:"image" yaml:"image"`
+	Name   string   `json:"name" toml:"name" yaml:"name"`
+	Region string   `json:"region" toml:"region" yaml:"region"`
+	Size   string   `json:"size" toml:"size" yaml:"size"`
+	Image  string   `json:"image" toml:"image" yaml:"image"`
+	Tags   []string `json:"tags" toml:"tags" yaml:"tags"`
 }
 
 type SSHConfig struct {
@@ -63,7 +64,7 @@ func readFile(path string) ([]byte, error) {
 
 func loadToml(path string) {
 	if _, err := toml.DecodeFile(path, &Cfg); err != nil {
-		slog.Error("error occured while decoding config file", slog.String("error", err.Error()))
+		log.Error("error occured while decoding config file", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 }
@@ -71,11 +72,11 @@ func loadToml(path string) {
 func loadJson(path string) {
 	content, err := readFile(path)
 	if err != nil {
-		slog.Error("error occured while reading config file", slog.String("error", err.Error()))
+		log.Error("error occured while reading config file", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 	if err := json.Unmarshal(content, &Cfg); err != nil {
-		slog.Error("error occured while decoding config file", slog.String("error", err.Error()))
+		log.Error("error occured while decoding config file", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 }
@@ -83,11 +84,11 @@ func loadJson(path string) {
 func loadYaml(path string) {
 	content, err := readFile(path)
 	if err != nil {
-		slog.Error("error occured while reading config file", slog.String("error", err.Error()))
+		log.Error("error occured while reading config file", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 	if err := yaml.Unmarshal(content, &Cfg); err != nil {
-		slog.Error("error occured while decoding config file", slog.String("error", err.Error()))
+		log.Error("error occured while decoding config file", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 }
@@ -97,17 +98,17 @@ func init() {
 	extension := filepath.Ext(configFilePath)
 	switch extension {
 	case ".toml":
-		slog.Info("loading toml config file", slog.String("path", configFilePath))
+		log.Info("loading toml config file", "path", configFilePath)
 		loadToml(configFilePath)
 	case ".json":
-		slog.Info("loading json config file", slog.String("path", configFilePath))
+		log.Info("loading json config file", "path", configFilePath)
 		loadJson(configFilePath)
 	case ".yaml":
-		slog.Info("loading yaml config file", slog.String("path", configFilePath))
+		log.Info("loading yaml config file", "path", configFilePath)
 		loadYaml(configFilePath)
 	default:
-		slog.Error("unsupported config file extension", slog.String("extension", extension))
+		log.Error("unsupported config file extension", "extension", extension)
 		os.Exit(1)
 	}
-	fmt.Println(Cfg)
+	log.Info("config file loaded", "path", configFilePath)
 }

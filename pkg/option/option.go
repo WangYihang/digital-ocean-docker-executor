@@ -7,7 +7,7 @@ import (
 )
 
 type Options struct {
-	ConfigFilePath string `short:"c" long:"config" description:"Path to the config file" required:"true"`
+	ConfigFilePath string `short:"c" long:"config" description:"Path to the config file" required:"true" default:"config.toml"`
 }
 
 var Opts Options
