@@ -225,7 +225,8 @@ func (pm *Scheduler) SubmitDockerTask(task *task.DockerTask) {
 				e.Connect()
 				// Run initialization scripts on the new server
 				e.RunExecutable("./assets/scripts/ubuntu-22-04-x64/add-swap.sh")
-				e.RunCommand("snap refresh && snap install docker")
+
+				// Docker pull
 				e.RunCommand(task.DockerPullCommand())
 			}
 
@@ -245,6 +246,7 @@ func (pm *Scheduler) SubmitDockerTask(task *task.DockerTask) {
 		),
 	)
 	e.Connect()
+
 	// Run the Docker task command
 	cmd := task.DockerRunCommand()
 	stdout, stderr, err := e.RunCommand(cmd)

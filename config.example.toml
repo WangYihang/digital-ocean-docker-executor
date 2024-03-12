@@ -13,7 +13,7 @@ name = "executor"
 [digitalocean.droplet]
 name = "executor"
 region = "nyc3"
-size = "s-1vcpu-1gb"
+size = "docker-20-04"
 image = "ubuntu-22-04-x64"
 tag = "executor"
 
