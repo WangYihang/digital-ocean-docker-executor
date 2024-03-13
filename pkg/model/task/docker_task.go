@@ -187,7 +187,6 @@ func (dt *DockerTask) DockerRunCommand() string {
 	return strings.Join(parts, " ")
 }
 
-// Check if any of the container project is already running on the current server
 func (dt *DockerTask) DockerPsAllRelatedContainersCommand() string {
 	parts := []string{
 		"docker",
@@ -202,7 +201,6 @@ func (dt *DockerTask) DockerPsAllRelatedContainersCommand() string {
 	return strings.Join(parts, " ")
 }
 
-// Check if the current task instance is already running on the current server
 func (dt *DockerTask) DockerPsAllTaskContainersCommand() string {
 	parts := []string{
 		"docker",
@@ -219,7 +217,6 @@ func (dt *DockerTask) DockerPsAllTaskContainersCommand() string {
 	return strings.Join(parts, " ")
 }
 
-// Check if the current task instance is already running on the current server
 func (dt *DockerTask) DockerPsRunningTaskContainersCommand() string {
 	parts := []string{
 		"docker",
