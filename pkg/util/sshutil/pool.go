@@ -78,10 +78,10 @@ func (pool *SSHConnectionPool) GetConnection(id SSHConnIdentifier, config *ssh.C
 	if ok && conn.Client != nil {
 		_, _, err := conn.Client.SendRequest("keepalive@golang.org", true, nil)
 		if err == nil {
-			log.Printf("Reusing active connection: %s", idStr)
+			log.Warn("reusing active connection", "id", idStr)
 			return conn, nil
 		}
-		log.Printf("Closing inactive connection: %s", err)
+		log.Warn("closing inactive connection", "id", err)
 		conn.Client.Close()
 		pool.connections.Delete(idStr) // Remove invalid connection
 	}
@@ -93,7 +93,7 @@ func (pool *SSHConnectionPool) GetConnection(id SSHConnIdentifier, config *ssh.C
 			if i == 0 {
 				initialErr = err // Preserve the first error
 			}
-			log.Printf("Failed to establish connection: %s, retrying...", err)
+			log.Warn("retrying to establish connection", "delay", retryDelay, "error", err)
 			time.Sleep(retryDelay)
 			retryDelay *= 2
 			if retryDelay > 60*time.Second {
@@ -101,7 +101,7 @@ func (pool *SSHConnectionPool) GetConnection(id SSHConnIdentifier, config *ssh.C
 			}
 			continue
 		}
-		log.Info("Connection established: %s", idStr)
+		log.Info("connection established", "id", idStr)
 		sshConn := &SSHConnection{Client: newConn, Host: id.Host}
 		pool.connections.Store(idStr, sshConn)
 		return sshConn, nil
