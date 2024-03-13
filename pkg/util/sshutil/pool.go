@@ -69,34 +69,46 @@ func (pool *SSHConnectionPool) getConnectionID(id SSHConnIdentifier) (string, *S
 }
 
 // GetConnection retrieves or creates an SSH connection from the pool.
+
 func (pool *SSHConnectionPool) GetConnection(id SSHConnIdentifier, config *ssh.ClientConfig) (*SSHConnection, error) {
-	maxRetries := 128
-	retryDelay := time.Second
+	const maxRetries = 8
+	var retryDelay = 5 * time.Second
 
 	idStr, conn, ok := pool.getConnectionID(id)
 	if ok && conn.Client != nil {
 		_, _, err := conn.Client.SendRequest("keepalive@golang.org", true, nil)
 		if err == nil {
-			log.Debug("reusing active connection", "id", idStr)
+			log.Printf("Reusing active connection: %s", idStr)
 			return conn, nil
 		}
-		log.Debug("closing inactive connection", "id", idStr)
+		log.Printf("Closing inactive connection: %s", err)
 		conn.Client.Close()
+		pool.connections.Delete(idStr) // Remove invalid connection
 	}
 
+	var initialErr error
 	for i := 0; i < maxRetries; i++ {
 		newConn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", id.Host, id.Port), config)
 		if err != nil {
-			log.Error("failed to establish connection", "id", idStr, "error", err)
+			if i == 0 {
+				initialErr = err // Preserve the first error
+			}
+			log.Printf("Failed to establish connection: %s, retrying...", err)
 			time.Sleep(retryDelay)
+			retryDelay *= 2
+			if retryDelay > 60*time.Second {
+				retryDelay = 60 * time.Second
+			}
 			continue
 		}
-		log.Info("connection established", "id", idStr)
+		log.Info("Connection established: %s", idStr)
 		sshConn := &SSHConnection{Client: newConn, Host: id.Host}
 		pool.connections.Store(idStr, sshConn)
 		return sshConn, nil
 	}
 
-	log.Error("failed to establish connection", "id", idStr, "num_retries", maxRetries)
+	if initialErr != nil {
+		return nil, fmt.Errorf("initial connection error: %v, failed after %d retries", initialErr, maxRetries)
+	}
 	return nil, fmt.Errorf("failed to establish connection after %d retries", maxRetries)
 }
