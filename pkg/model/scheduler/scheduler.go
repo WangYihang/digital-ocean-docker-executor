@@ -142,7 +142,7 @@ func (pm *Scheduler) WaitTask(task *task.DockerTask, server server.Server) {
 			// Download output file from the server
 			for _, outputFilePath := range task.GetOutputFilePaths() {
 				for err := e.DownloadFile(outputFilePath, uuid.New().String()); err != nil; {
-					log.Error("error occurred when downloading file", "error", err)
+					log.Error("error occurred when downloading file", "error", err, "path", outputFilePath)
 					time.Sleep(5 * time.Second)
 				}
 			}
@@ -247,6 +247,10 @@ func (pm *Scheduler) SubmitDockerTask(task *task.DockerTask) {
 	)
 	e.Connect()
 
+	// Download tranco list
+	e.RunCommand("docker pull ghcr.io/wangyihang/tranco-go-package:main")
+	e.RunCommand("docker run -v /root/.tranco:/root/.tranco ghcr.io/wangyihang/tranco-go-package:main --date 2024-01-01")
+
 	// Run the Docker task command
 	cmd := task.DockerRunCommand()
 	stdout, stderr, err := e.RunCommand(cmd)
@@ -254,6 +258,7 @@ func (pm *Scheduler) SubmitDockerTask(task *task.DockerTask) {
 		log.Error("error occurred when running command", "error", err, "cmd", cmd, "stdout", stdout, "stderr", stderr)
 		return
 	}
+
 	// Start waiting for the task to complete in a separate goroutine
 	go pm.WaitTask(task, idleServer)
 	log.Warn("task assigned", "server", idleServer.IPv4(), "task", task, "stdout", stdout, "stderr", stderr)
