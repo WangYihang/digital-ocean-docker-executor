@@ -34,6 +34,7 @@ func Generate(image string, label string) chan *task.DockerTask {
 			containerConfigFilePath := "config/config.yaml"
 			out <- t.WithArguments(
 				"-i", containerInputFilePath,
+				"--input-file-format", "tranco",
 				"-o", containerOutputFolderPath,
 				"--shard", fmt.Sprintf("%d", shard),
 				"--num-shards", fmt.Sprintf("%d", numShards),
