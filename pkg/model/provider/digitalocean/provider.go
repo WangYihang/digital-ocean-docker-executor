@@ -60,6 +60,8 @@ func (p *Provider) CreateServer(name string, tag string) (server.Server, error) 
 		return nil, err
 	}
 
+	p.CreateKeyPair(name, pubkey)
+
 	droplet, err := p.do.CreateDroplet(
 		name,
 		config.Cfg.DigitalOcean.Droplet.Region,
