@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/task"
+	"github.com/charmbracelet/log"
 )
 
 func Generate(label string) chan *task.DockerTask {
@@ -28,7 +29,7 @@ func Generate(label string) chan *task.DockerTask {
 				WithLabel("dode.task", label).
 				WithLabel("dode.shard", fmt.Sprintf("%d", shard)).
 				WithLabel("dode.num-shard", fmt.Sprintf("%d", numShards))
-			outputFolderName := t.GetOutputFileName()
+			outputFolderName := t.GetOutputFolderName()
 			containerInputFilePath := filepath.Join(containerInputFileFolder, "2024-01-01_fqdn_full_G6Y6K.csv")
 			containerOutputFolderPath := filepath.Join(containerOutputFileFolder, outputFolderName)
 			containerConfigFilePath := "config/config.yaml"
@@ -39,7 +40,11 @@ func Generate(label string) chan *task.DockerTask {
 				"--num-shards", fmt.Sprintf("%d", numShards),
 				"--num-workers", fmt.Sprintf("%d", numWorkers),
 				"--config-file-path", containerConfigFilePath,
-			).WithLabel("dode.output", hostOutputFileFolder)
+			).WithLabel("dode.output", outputFolderName)
+			if shard > 8 {
+				log.Warn("Shard is greater than 8, breaking the loop")
+				break
+			}
 		}
 	}()
 	return out

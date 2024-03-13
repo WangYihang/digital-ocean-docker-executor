@@ -2,6 +2,7 @@ package task
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -234,10 +235,6 @@ func (dt *DockerTask) DockerPsRunningTaskContainersCommand() string {
 	return strings.Join(parts, " ")
 }
 
-func (dt *DockerTask) GetOutputFolder() string {
-	return dt.GetLabelByKey("dode.output")
-}
-
 func (dt *DockerTask) GetLabelByKey(key string) string {
 	for _, label := range dt.Labels {
 		if label.Key == key {
@@ -247,7 +244,7 @@ func (dt *DockerTask) GetLabelByKey(key string) string {
 	return ""
 }
 
-func (dt *DockerTask) GetOutputFileName() string {
+func (dt *DockerTask) GetOutputFolderName() string {
 	label := dt.GetLabelByKey("dode.task")
 	shard := dt.GetLabelByKey("dode.shard")
 	numShards := dt.GetLabelByKey("dode.num-shard")
@@ -255,14 +252,17 @@ func (dt *DockerTask) GetOutputFileName() string {
 }
 
 func (dt *DockerTask) RetrieveOutput(ip string) error {
+	taskLabel := dt.GetLabelByKey("dode.task")
+	os.MkdirAll(fmt.Sprintf("./data/%s", dt.GetLabelByKey("dode.task")), 0755)
 	command := fmt.Sprintf(
-		`rsync -e "ssh -o StrictHostKeyChecking=no -i %s/%s" -avz "%s@%s:/root/%s/" ./data/%s/`,
+		`rsync -e "ssh -o StrictHostKeyChecking=no -i %s/%s" -avz "%s@%s:/root/%s/%s" ./data/%s/`,
 		config.Cfg.DigitalOcean.SSH.Key.Folder,
 		config.Cfg.DigitalOcean.SSH.Key.Name,
 		config.Cfg.DigitalOcean.SSH.User,
 		ip,
-		dt.GetLabelByKey("dode.task"),
-		dt.GetLabelByKey("dode.task"),
+		taskLabel,
+		dt.GetLabelByKey("dode.output"),
+		taskLabel,
 	)
 	log.Warn("retrieving results", "command", command)
 	return exec.Command("bash", "-c", command).Run()
