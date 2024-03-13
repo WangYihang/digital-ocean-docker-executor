@@ -2,9 +2,11 @@ package task
 
 import (
 	"fmt"
+	"os/exec"
 	"strings"
 
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/config"
+	"github.com/charmbracelet/log"
 )
 
 type Mount struct {
@@ -48,6 +50,8 @@ type DockerTask struct {
 	Interactive bool
 	Tty         bool
 	Detach      bool
+	Privileged  bool
+	Network     string
 }
 
 func NewDockerTask() *DockerTask {
@@ -115,7 +119,16 @@ func (dt *DockerTask) WithDetach() *DockerTask {
 	return dt
 }
 
-// Docker PUll command
+func (dt *DockerTask) WithPrivileged() *DockerTask {
+	dt.Privileged = true
+	return dt
+}
+
+func (dt *DockerTask) WithNetwork(network string) *DockerTask {
+	dt.Network = network
+	return dt
+}
+
 func (dt *DockerTask) DockerPullCommand() string {
 	parts := []string{
 		"docker",
@@ -138,6 +151,15 @@ func (dt *DockerTask) DockerRunCommand() string {
 	}
 	if dt.Tty {
 		parts = append(parts, "--tty")
+	}
+	if dt.Privileged {
+		parts = append(parts, "--privileged")
+	}
+	if dt.Network != "" {
+		parts = append(parts, []string{
+			"--network",
+			fmt.Sprintf("%q", dt.Network),
+		}...)
 	}
 	if dt.Entrypoint != "" {
 		parts = append(parts, []string{
@@ -212,9 +234,36 @@ func (dt *DockerTask) DockerPsRunningTaskContainersCommand() string {
 	return strings.Join(parts, " ")
 }
 
-func (dt *DockerTask) GetOutputFilePaths() []string {
-	return []string{
-		"/etc/passwd",
-		"/etc/hosts",
+func (dt *DockerTask) GetOutputFolder() string {
+	return dt.GetLabelByKey("dode.output")
+}
+
+func (dt *DockerTask) GetLabelByKey(key string) string {
+	for _, label := range dt.Labels {
+		if label.Key == key {
+			return label.Value
+		}
 	}
+	return ""
+}
+
+func (dt *DockerTask) GetOutputFileName() string {
+	label := dt.GetLabelByKey("dode.task")
+	shard := dt.GetLabelByKey("dode.shard")
+	numShards := dt.GetLabelByKey("dode.num-shard")
+	return fmt.Sprintf("%s-%s-%s", label, shard, numShards)
+}
+
+func (dt *DockerTask) RetrieveOutput(ip string) error {
+	command := fmt.Sprintf(
+		`rsync -e "ssh -o StrictHostKeyChecking=no -i %s/%s" -avz "%s@%s:/root/%s/" ./data/%s/`,
+		config.Cfg.DigitalOcean.SSH.Key.Folder,
+		config.Cfg.DigitalOcean.SSH.Key.Name,
+		config.Cfg.DigitalOcean.SSH.User,
+		ip,
+		dt.GetLabelByKey("dode.task"),
+		dt.GetLabelByKey("dode.task"),
+	)
+	log.Warn("retrieving results", "command", command)
+	return exec.Command("bash", "-c", command).Run()
 }
