@@ -12,7 +12,6 @@ import (
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/server"
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/task"
 	"github.com/charmbracelet/log"
-	"github.com/google/uuid"
 )
 
 type Scheduler struct {
@@ -140,12 +139,7 @@ func (pm *Scheduler) WaitTask(task *task.DockerTask, server server.Server) {
 			// Task is complete when there are no running containers
 			log.Warn("task done", "server", server.IPv4(), "task", task)
 			// Download output file from the server
-			for _, outputFilePath := range task.GetOutputFilePaths() {
-				for err := e.DownloadFile(outputFilePath, uuid.New().String()); err != nil; {
-					log.Error("error occurred when downloading file", "error", err, "path", outputFilePath)
-					time.Sleep(5 * time.Second)
-				}
-			}
+			task.RetrieveOutput(server.IPv4())
 			return
 		}
 		time.Sleep(5 * time.Second)
