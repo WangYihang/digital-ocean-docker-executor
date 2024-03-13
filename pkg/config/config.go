@@ -19,7 +19,7 @@ type Task struct {
 
 type Config struct {
 	DigitalOcean DigitalOcean `json:"digitalocean" toml:"digitalocean" yaml:"digitalocean"`
-	Task         Task         `json:"project" toml:"project" yaml:"project"`
+	Task         Task         `json:"task" toml:"task" yaml:"task"`
 }
 
 type DigitalOcean struct {
