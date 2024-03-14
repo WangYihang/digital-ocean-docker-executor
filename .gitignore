@@ -23,6 +23,7 @@ dist/
 
 # Config file
 config.toml
+config.yaml
 
 # SSH Key folder
 .ssh/
@@ -32,3 +33,6 @@ data/
 
 # Visual Studio Code
 .vscode/
+
+# Log file
+*.log

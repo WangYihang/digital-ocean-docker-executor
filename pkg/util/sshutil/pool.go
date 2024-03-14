@@ -93,7 +93,7 @@ func (pool *SSHConnectionPool) GetConnection(id SSHConnIdentifier, config *ssh.C
 			if i == 0 {
 				initialErr = err // Preserve the first error
 			}
-			log.Warn("retrying to establish connection", "delay", retryDelay, "error", err)
+			log.Warn("retrying to establish connection", "id", idStr, "delay", retryDelay, "error", err)
 			time.Sleep(retryDelay)
 			retryDelay *= 2
 			if retryDelay > 60*time.Second {

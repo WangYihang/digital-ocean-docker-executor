@@ -79,7 +79,7 @@ func (pm *Scheduler) Wait() {
 	// Wait for all tasks to complete
 	pm.wg.Wait()
 	// Destroy all servers
-	pm.provider.DestroyServerByTag(config.Cfg.DigitalOcean.Droplet.Tag)
+	// pm.provider.DestroyServerByTag(config.Cfg.DigitalOcean.Droplet.Tag)
 }
 
 func (pm *Scheduler) GetTaskRunningServer(task *task.DockerTask) (server.Server, error) {
@@ -114,6 +114,7 @@ func (pm *Scheduler) GetTaskRunningServer(task *task.DockerTask) (server.Server,
 	}
 	return nil, fmt.Errorf("task is not running on any server")
 }
+
 func (pm *Scheduler) WaitTask(task *task.DockerTask, server server.Server) {
 	defer pm.wg.Done()
 	// Initialize a new SSH executor to interact with the server
@@ -179,7 +180,7 @@ func (pm *Scheduler) SubmitDockerTask(task *task.DockerTask) {
 				)
 				e.Connect()
 				for {
-					cmd := task.DockerPsAllRelatedContainersCommand()
+					cmd := task.DockerPsAllRelatedRunningContainersCommand()
 					stdout, _, err := e.RunCommand(cmd)
 					if err != nil {
 						log.Error("error occurred when running command", "error", err, "cmd", cmd)
