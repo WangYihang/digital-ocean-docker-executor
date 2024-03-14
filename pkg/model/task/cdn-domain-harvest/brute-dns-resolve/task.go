@@ -6,5 +6,20 @@ import (
 )
 
 func Generate(label string) chan *task.DockerTask {
-	return cdn_domain_harvest.Generate("ghcr.io/wangyihang/cdn-domain-harvest/brute-dns-resolve:v0.0.5", label)
+	out := make(chan *task.DockerTask)
+	go func() {
+		defer close(out)
+		image := "ghcr.io/wangyihang/cdn-domain-harvest/brute-dns-resolve:v0.0.7"
+		for _, qtype := range []string{
+			"A", "AAAA", "TXT", "NS", "CNAME",
+		} {
+			additionalArguments := map[string]string{
+				"qtype": qtype,
+			}
+			for task := range cdn_domain_harvest.Generate(image, label, additionalArguments) {
+				out <- task
+			}
+		}
+	}()
+	return out
 }
