@@ -187,7 +187,7 @@ func (dt *DockerTask) DockerRunCommand() string {
 	return strings.Join(parts, " ")
 }
 
-func (dt *DockerTask) DockerPsAllRelatedContainersCommand() string {
+func (dt *DockerTask) DockerPsAllRelatedRunningContainersCommand() string {
 	parts := []string{
 		"docker",
 		"ps",
