@@ -34,5 +34,8 @@ data/
 # Visual Studio Code
 .vscode/
 
+# IDEA
+.idea/
+
 # Log file
 *.log
