@@ -207,6 +207,8 @@ func (s *SSHExecutor) DownloadFile(remoteFilePath, localFilePath string) error {
 	}
 	defer remoteFile.Close()
 
+	os.MkdirAll(filepath.Dir(localFilePath), os.ModePerm)
+
 	localFile, err := os.Create(localFilePath)
 	if err != nil {
 		return err

@@ -168,8 +168,8 @@ func (z *ZmapTask) Status() (task.StatusInterface, error) {
 }
 
 func (z *ZmapTask) Download() error {
-	z.e.DownloadFile(filepath.Join("/data", z.arguments.OutputFileName), filepath.Base(z.arguments.OutputFileName))
-	z.e.DownloadFile(filepath.Join("/data", z.arguments.StatusUpdateFileName), filepath.Base(z.arguments.StatusUpdateFileName))
-	z.e.DownloadFile(filepath.Join("/data", z.arguments.LogFileName), filepath.Base(z.arguments.LogFileName))
+	z.e.DownloadFile(filepath.Join("/data", z.arguments.OutputFileName), filepath.Join("data", filepath.Base(z.arguments.OutputFileName)))
+	z.e.DownloadFile(filepath.Join("/data", z.arguments.StatusUpdateFileName), filepath.Join("data", filepath.Base(z.arguments.StatusUpdateFileName)))
+	z.e.DownloadFile(filepath.Join("/data", z.arguments.LogFileName), filepath.Join("data", filepath.Base(z.arguments.LogFileName)))
 	return nil
 }
