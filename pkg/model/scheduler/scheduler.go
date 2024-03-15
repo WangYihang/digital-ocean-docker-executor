@@ -15,58 +15,21 @@ import (
 )
 
 type Scheduler struct {
-	maxConcurrency        int
-	sshPublicKeyFilePath  string
-	sshPrivateKeyFilePath string
-	region                string
-	image                 string
-	size                  string
-	provider              provider.CloudServiceProvider
-	wg                    *sync.WaitGroup
+	maxConcurrency int
+	provider       provider.CloudServiceProvider
+	wg             *sync.WaitGroup
 }
 
 func New() *Scheduler {
 	return &Scheduler{
-		maxConcurrency: 2,
-		sshPublicKeyFilePath: filepath.Join(
-			config.Cfg.DigitalOcean.SSH.Key.Folder,
-			fmt.Sprintf("%s.pub", config.Cfg.DigitalOcean.SSH.Key.Name),
-		),
-		sshPrivateKeyFilePath: filepath.Join(
-			config.Cfg.DigitalOcean.SSH.Key.Folder,
-			config.Cfg.DigitalOcean.SSH.Key.Name,
-		),
-		region:   config.Cfg.DigitalOcean.Droplet.Region,
-		image:    config.Cfg.DigitalOcean.Droplet.Image,
-		size:     config.Cfg.DigitalOcean.Droplet.Size,
-		provider: provider.Default(),
-		wg:       &sync.WaitGroup{},
+		maxConcurrency: 1,
+		provider:       provider.Default(),
+		wg:             &sync.WaitGroup{},
 	}
 }
 
 func (pm *Scheduler) WithMaxConcurrency(maxConcurrency int) *Scheduler {
 	pm.maxConcurrency = maxConcurrency
-	return pm
-}
-
-func (pm *Scheduler) WithSSHKey(sshPublicKeyFilePath string, sshPrivateKeyFilePath string) *Scheduler {
-	pm.sshPublicKeyFilePath = sshPublicKeyFilePath
-	pm.sshPrivateKeyFilePath = sshPrivateKeyFilePath
-	return pm
-}
-
-func (pm *Scheduler) WithRegion(region string) *Scheduler {
-	pm.region = region
-	return pm
-}
-
-func (pm *Scheduler) WithImage(image string) *Scheduler {
-	pm.image = image
-	return pm
-}
-
-func (pm *Scheduler) WithSize(size string) *Scheduler {
-	pm.size = size
 	return pm
 }
 
