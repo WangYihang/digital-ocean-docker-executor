@@ -3,16 +3,15 @@ package main
 import (
 	"os"
 
-	"github.com/WangYihang/digital-ocean-docker-executor/pkg/config"
-	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/scheduler"
-	task "github.com/WangYihang/digital-ocean-docker-executor/pkg/model/task/cdn-domain-harvest/brute-dns-resolve"
+	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/broker"
+	zmap_task "github.com/WangYihang/digital-ocean-docker-executor/pkg/model/task/zmap"
 	gojob_utils "github.com/WangYihang/gojob/pkg/utils"
 	"github.com/charmbracelet/log"
 )
 
 func init() {
 	log.SetLevel(log.DebugLevel)
-	fd, err := os.OpenFile("dode.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	fd, err := os.OpenFile("dode-1.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		panic(err)
 	}
@@ -20,9 +19,9 @@ func init() {
 }
 
 func main() {
-	s := scheduler.New().WithMaxConcurrency(1)
-	for t := range task.Generate(config.Cfg.Task.Label) {
-		s.SubmitDockerTask(t)
+	b := broker.New().WithMaxConcurrency(1)
+	for t := range zmap_task.Generate() {
+		b.Submit(t)
 	}
-	s.Wait()
+	b.Wait()
 }

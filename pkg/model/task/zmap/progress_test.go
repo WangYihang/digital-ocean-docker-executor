@@ -3,7 +3,7 @@ package zmap_task_test
 import (
 	"testing"
 
-	zmap_task "github.com/WangYihang/digital-ocean-docker-executor/pkg/model/task/zmap-task"
+	zmap_task "github.com/WangYihang/digital-ocean-docker-executor/pkg/model/task/zmap"
 )
 
 // Test ParseZMapProgress
