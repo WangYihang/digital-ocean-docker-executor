@@ -195,7 +195,7 @@ func (dt *DockerTask) DockerPsAllRelatedRunningContainersCommand() string {
 		"--filter",
 		fmt.Sprintf(
 			"%q",
-			fmt.Sprintf("label=dode.task=%s", config.Cfg.Task.Label),
+			fmt.Sprintf("label=task.label=%s", config.Cfg.Task.Label),
 		),
 	}
 	return strings.Join(parts, " ")

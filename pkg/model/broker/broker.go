@@ -58,7 +58,7 @@ func (pm *Scheduler) FindOrCreateAnIdleExecutor() (*secureshell.SSHExecutor, err
 				"ps",
 				"--quiet",
 				"--filter",
-				fmt.Sprintf("label=dode.task=%s", config.Cfg.Task.Label),
+				fmt.Sprintf("label=task.label=%s", config.Cfg.Task.Label),
 			}, " "))
 			if err != nil {
 				log.Error("failed to run command", "error", err)
@@ -69,7 +69,9 @@ func (pm *Scheduler) FindOrCreateAnIdleExecutor() (*secureshell.SSHExecutor, err
 				isIdle = true
 				break
 			}
+			time.Sleep(5 * time.Second)
 		}
+		log.Warn("find an idle server", "server", server.IPv4())
 		if isIdle {
 			return e, nil
 		}
@@ -120,7 +122,6 @@ func (pm *Scheduler) NeedRun(t task.TaskInterface) bool {
 			log.Error("failed to get task status", "error", err)
 			continue
 		}
-		log.Warn("task status", status)
 		if status.GetStatus() == task.RUNNING || status.GetStatus() == task.FINISHED {
 			return false
 		}
@@ -184,7 +185,7 @@ func (pm *Scheduler) WaitTask(t task.TaskInterface) {
 			time.Sleep(5 * time.Second)
 			continue
 		}
-		log.Debug("task status", status)
+		log.Debug("waiting task", "status", status)
 		if status.GetStatus() == task.FINISHED {
 			break
 		}
