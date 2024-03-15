@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
+	zmap_task "github.com/WangYihang/digital-ocean-docker-executor/examples/zmap/pkg/model/task"
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/broker"
-	zmap_task "github.com/WangYihang/digital-ocean-docker-executor/pkg/model/task/zmap"
 	gojob_utils "github.com/WangYihang/gojob/pkg/utils"
 	"github.com/charmbracelet/log"
 )
