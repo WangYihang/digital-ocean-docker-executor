@@ -12,26 +12,26 @@ import (
 
 type ZMapProgress struct {
 	RealTime              string  `csv:"real-time" json:"real-time"`
-	TimeElapsed           int     `csv:"time-elapsed" json:"time-elapsed"`
-	TimeRemaining         int     `csv:"time-remaining" json:"time-remaining"`
+	TimeElapsed           int64   `csv:"time-elapsed" json:"time-elapsed"`
+	TimeRemaining         int64   `csv:"time-remaining" json:"time-remaining"`
 	PercentComplete       float64 `csv:"percent-complete" json:"percent-complete"`
 	HitRate               float64 `csv:"hit-rate" json:"hit-rate"`
-	ActiveSendThreads     int     `csv:"active-send-threads" json:"active-send-threads"`
-	SentTotal             int     `csv:"sent-total" json:"sent-total"`
-	SentLastOneSec        int     `csv:"sent-last-one-sec" json:"sent-last-one-sec"`
-	SentAvgPerSec         int     `csv:"sent-avg-per-sec" json:"sent-avg-per-sec"`
-	RecvSuccessTotal      int     `csv:"recv-success-total" json:"recv-success-total"`
-	RecvSuccessLastOneSec int     `csv:"recv-success-last-one-sec" json:"recv-success-last-one-sec"`
-	RecvSuccessAvgPerSec  int     `csv:"recv-success-avg-per-sec" json:"recv-success-avg-per-sec"`
-	RecvTotal             int     `csv:"recv-total" json:"recv-total"`
-	RecvTotalLastOneSec   int     `csv:"recv-total-last-one-sec" json:"recv-total-last-one-sec"`
-	RecvTotalAvgPerSec    int     `csv:"recv-total-avg-per-sec" json:"recv-total-avg-per-sec"`
-	PcapDropTotal         int     `csv:"pcap-drop-total" json:"pcap-drop-total"`
-	DropLastOneSec        int     `csv:"drop-last-one-sec" json:"drop-last-one-sec"`
-	DropAvgPerSec         int     `csv:"drop-avg-per-sec" json:"drop-avg-per-sec"`
-	SendtoFailTotal       int     `csv:"sendto-fail-total" json:"sendto-fail-total"`
-	SendtoFailLastOneSec  int     `csv:"sendto-fail-last-one-sec" json:"sendto-fail-last-one-sec"`
-	SendtoFailAvgPerSec   int     `csv:"sendto-fail-avg-per-sec" json:"sendto-fail-avg-per-sec"`
+	ActiveSendThreads     int64   `csv:"active-send-threads" json:"active-send-threads"`
+	SentTotal             int64   `csv:"sent-total" json:"sent-total"`
+	SentLastOneSec        int64   `csv:"sent-last-one-sec" json:"sent-last-one-sec"`
+	SentAvgPerSec         int64   `csv:"sent-avg-per-sec" json:"sent-avg-per-sec"`
+	RecvSuccessTotal      int64   `csv:"recv-success-total" json:"recv-success-total"`
+	RecvSuccessLastOneSec int64   `csv:"recv-success-last-one-sec" json:"recv-success-last-one-sec"`
+	RecvSuccessAvgPerSec  int64   `csv:"recv-success-avg-per-sec" json:"recv-success-avg-per-sec"`
+	RecvTotal             int64   `csv:"recv-total" json:"recv-total"`
+	RecvTotalLastOneSec   int64   `csv:"recv-total-last-one-sec" json:"recv-total-last-one-sec"`
+	RecvTotalAvgPerSec    int64   `csv:"recv-total-avg-per-sec" json:"recv-total-avg-per-sec"`
+	PcapDropTotal         int64   `csv:"pcap-drop-total" json:"pcap-drop-total"`
+	DropLastOneSec        int64   `csv:"drop-last-one-sec" json:"drop-last-one-sec"`
+	DropAvgPerSec         int64   `csv:"drop-avg-per-sec" json:"drop-avg-per-sec"`
+	SendtoFailTotal       int64   `csv:"sendto-fail-total" json:"sendto-fail-total"`
+	SendtoFailLastOneSec  int64   `csv:"sendto-fail-last-one-sec" json:"sendto-fail-last-one-sec"`
+	SendtoFailAvgPerSec   int64   `csv:"sendto-fail-avg-per-sec" json:"sendto-fail-avg-per-sec"`
 	Line                  string
 }
 
@@ -75,15 +75,15 @@ func (z ZMapProgress) GetStatus() task.TaskStatus {
 	return task.PENDING
 }
 
-func (z ZMapProgress) NumTotal() int {
+func (z ZMapProgress) NumTotal() int64 {
 	return z.RecvTotal
 }
 
-func (z ZMapProgress) NumDoneWithSuccess() int {
+func (z ZMapProgress) NumDoneWithSuccess() int64 {
 	return z.RecvSuccessTotal
 }
 
-func (z ZMapProgress) NumDoneWithError() int {
+func (z ZMapProgress) NumDoneWithError() int64 {
 	return z.RecvTotal - z.RecvSuccessTotal
 }
 

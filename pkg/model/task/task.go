@@ -23,11 +23,11 @@ type StatusInterface interface {
 	// GetStatus gets the status of the entire task
 	GetStatus() TaskStatus
 	// Get the number of total nano tasks
-	NumTotal() int
+	NumTotal() int64
 	// Get the number of suceeded nano tasks
-	NumDoneWithSuccess() int
+	NumDoneWithSuccess() int64
 	// Get the number of failed nano tasks
-	NumDoneWithError() int
+	NumDoneWithError() int64
 }
 
 type TaskInterface interface {

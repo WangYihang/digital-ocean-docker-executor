@@ -12,6 +12,7 @@ import (
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/provider"
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/task"
 	"github.com/charmbracelet/log"
+	"github.com/schollz/progressbar/v3"
 )
 
 type Scheduler struct {
@@ -177,6 +178,7 @@ func (pm *Scheduler) Submit(t task.TaskInterface) error {
 }
 
 func (pm *Scheduler) WaitTask(t task.TaskInterface) {
+	var bar *progressbar.ProgressBar
 	for {
 		// Wait task status become task.FINISHED
 		status, err := t.Status()
@@ -189,6 +191,10 @@ func (pm *Scheduler) WaitTask(t task.TaskInterface) {
 		if status.GetStatus() == task.FINISHED {
 			break
 		}
+		if bar == nil {
+			bar = progressbar.Default(status.NumTotal())
+		}
+		bar.Set64(status.NumDoneWithError() + status.NumDoneWithSuccess())
 		time.Sleep(5 * time.Second)
 	}
 	for {
