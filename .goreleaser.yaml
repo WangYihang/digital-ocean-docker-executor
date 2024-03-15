@@ -16,7 +16,10 @@ before:
     - go generate ./...
 
 builds:
-  - env:
+  - id: zmap-task
+    main: ./examples/zmap/main.go
+    binary: zmap-task
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
