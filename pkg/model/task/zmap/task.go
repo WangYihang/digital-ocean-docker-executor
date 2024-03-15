@@ -22,17 +22,31 @@ func Generate() <-chan *ZmapTask {
 	out := make(chan *ZmapTask)
 	go func() {
 		defer close(out)
-		for range 2 {
-			out <- NewZmapTask()
+		shards := 254
+		port := 80
+		for shard := range shards {
+			if shard >= 4 {
+				break
+			}
+			out <- NewZmapTask(port, shard, shards)
 		}
 	}()
 	return out
 }
 
-func NewZmapTask() *ZmapTask {
+func NewZmapTask(port, shard, shards int) *ZmapTask {
+	filename := fmt.Sprintf("zmap-%d-%d-%d", port, shard, shards)
 	z := &ZmapTask{
-		arguments: NewZmapArguments().WithShards(254).WithShard(0),
-		labels:    make(map[string]interface{}),
+		arguments: NewZmapArguments().
+			WithTargetPort(port).
+			WithShard(shard).
+			WithShards(shards).
+			WithBandWidth("1M").
+			WithSubnet("104.245.0.0/8").
+			WithOutputFileName(fmt.Sprintf("%s.json", filename)).
+			WithStatusUpdateFileName(fmt.Sprintf("%s.status", filename)).
+			WithLogFileName(fmt.Sprintf("%s.log", filename)),
+		labels: make(map[string]interface{}),
 	}
 	z.labels["task.label"] = config.Cfg.Task.Label
 	z.labels["task.shard"] = z.arguments.Shard
@@ -62,7 +76,7 @@ func (z *ZmapTask) Prepare() error {
 func (z *ZmapTask) Start() error {
 	arguments := []string{
 		"docker", "run",
-		"--interactive", "--tty", "--detach", "--rm",
+		"--interactive", "--tty", "--detach",
 		"--network", "host",
 		"--volume", "/data:/data",
 	}
@@ -93,6 +107,7 @@ func (z *ZmapTask) Status() (task.StatusInterface, error) {
 	// check if zmap is running
 	arguments := []string{
 		"docker", "ps",
+		"--all",
 		"--quiet",
 	}
 	for k, v := range z.labels {
@@ -106,10 +121,30 @@ func (z *ZmapTask) Status() (task.StatusInterface, error) {
 		return nil, fmt.Errorf(stderr)
 	}
 	if stdout == "" {
-		return DummyProgress, nil
+		return PendingProgress, nil
 	}
 
-	log.Error("ZMap is running", "container", stdout)
+	log.Info("zmap have already been started", "container", stdout)
+
+	// check if the container is running
+	stdout, stderr, err = z.e.RunCommand(strings.Join([]string{
+		"docker",
+		"inspect",
+		"--format",
+		"{{.State.Running}}",
+		z.containerID,
+	}, " "))
+	if err != nil {
+		return nil, err
+	}
+	if stderr != "" {
+		return nil, fmt.Errorf(stderr)
+	}
+	if strings.TrimSpace(stdout) == "false" {
+		// the container is not running, so it must have finished
+		return DoneProgress, nil
+	}
+
 	// read the status file
 	stdout, stderr, err = z.e.RunCommand(strings.Join([]string{
 		"tail",
@@ -118,10 +153,10 @@ func (z *ZmapTask) Status() (task.StatusInterface, error) {
 		filepath.Join("/data", z.arguments.StatusUpdateFileName),
 	}, " "))
 	if err != nil {
-		return DummyProgress, nil
+		return PendingProgress, nil
 	}
 	if stderr != "" {
-		return DummyProgress, nil
+		return PendingProgress, nil
 	}
 
 	// parse the status file
@@ -133,5 +168,8 @@ func (z *ZmapTask) Status() (task.StatusInterface, error) {
 }
 
 func (z *ZmapTask) Download() error {
-	return z.e.DownloadFile(z.arguments.OutputFileName, filepath.Base(z.arguments.OutputFileName))
+	z.e.DownloadFile(filepath.Join("/data", z.arguments.OutputFileName), filepath.Base(z.arguments.OutputFileName))
+	z.e.DownloadFile(filepath.Join("/data", z.arguments.StatusUpdateFileName), filepath.Base(z.arguments.StatusUpdateFileName))
+	z.e.DownloadFile(filepath.Join("/data", z.arguments.LogFileName), filepath.Base(z.arguments.LogFileName))
+	return nil
 }

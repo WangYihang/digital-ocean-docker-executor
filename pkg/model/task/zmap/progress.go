@@ -35,10 +35,12 @@ type ZMapProgress struct {
 	Line                  string
 }
 
-var DummyProgress *ZMapProgress
+var PendingProgress *ZMapProgress
+var DoneProgress *ZMapProgress
 
 func init() {
-	DummyProgress, _ = NewZMapProgress("0000-00-00 00:00:00,0,0,0,0.000000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0")
+	PendingProgress, _ = NewZMapProgress("0000-00-00 00:00:00,0,0,0,0.000000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0")
+	DoneProgress, _ = NewZMapProgress("0000-00-00 00:00:00,0,0,100,0.000000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0")
 }
 
 func NewZMapProgress(message string) (*ZMapProgress, error) {
