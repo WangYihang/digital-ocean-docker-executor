@@ -1,11 +1,14 @@
 package alibaba
 
-import "github.com/WangYihang/digital-ocean-docker-executor/pkg/model/server"
+import (
+	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/provider/api"
+	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/server"
+)
 
 type AlibabaProvider struct {
 }
 
-func New() *AlibabaProvider {
+func NewProvider(token string) *AlibabaProvider {
 	return &AlibabaProvider{}
 }
 
@@ -25,7 +28,7 @@ func (a *AlibabaProvider) CreateKeyPair(name string, pubkey string) error {
 	panic("not implemented")
 }
 
-func (a *AlibabaProvider) CreateServer(name string, tag string) (server.Server, error) {
+func (a *AlibabaProvider) CreateServer(cso *api.CreateServerOptions) (server.Server, error) {
 	panic("not implemented")
 }
 

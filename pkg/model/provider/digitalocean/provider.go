@@ -1,18 +1,19 @@
 package digitalocean
 
 import (
-	"github.com/WangYihang/digital-ocean-docker-executor/pkg/config"
+	"os"
+
+	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/provider/api"
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/server"
-	"github.com/WangYihang/digital-ocean-docker-executor/pkg/util/sshutil"
 )
 
 type Provider struct {
 	do *DigitalOcean
 }
 
-func NewProvider() *Provider {
+func NewProvider(token string) *Provider {
 	return &Provider{
-		do: newDigitalOcean(config.Cfg.DigitalOcean.Token),
+		do: newDigitalOcean(token),
 	}
 }
 
@@ -54,21 +55,24 @@ func (p *Provider) CreateKeyPair(name string, pubkey string) error {
 	return err
 }
 
-func (p *Provider) CreateServer(name string, tag string) (server.Server, error) {
-	pubkey, _, err := sshutil.LoadOrCreateSSHKeyPair(config.Cfg.DigitalOcean.SSH.Key.Folder, config.Cfg.DigitalOcean.SSH.Key.Name)
+func (p *Provider) CreateServer(cso *api.CreateServerOptions) (server.Server, error) {
+	pubkey, err := os.ReadFile(cso.PublicKeyPath)
 	if err != nil {
 		return nil, err
 	}
 
-	p.CreateKeyPair(name, pubkey)
+	err = p.CreateKeyPair(cso.Name, string(pubkey))
+	if err != nil {
+		return nil, err
+	}
 
 	droplet, err := p.do.CreateDroplet(
-		name,
-		config.Cfg.DigitalOcean.Droplet.Region,
-		config.Cfg.DigitalOcean.Droplet.Size,
-		config.Cfg.DigitalOcean.Droplet.Image,
-		pubkey,
-		tag,
+		cso.Name,
+		cso.Region,
+		cso.Size,
+		cso.Image,
+		string(pubkey),
+		cso.Tag,
 	)
 	if err != nil {
 		return nil, err

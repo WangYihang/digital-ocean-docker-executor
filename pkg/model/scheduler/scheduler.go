@@ -2,222 +2,199 @@ package scheduler
 
 import (
 	"fmt"
-	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/WangYihang/digital-ocean-docker-executor/pkg/config"
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/executor/secureshell"
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/provider"
-	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/server"
+	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/provider/api"
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/task"
 	"github.com/charmbracelet/log"
 )
 
 type Scheduler struct {
+	name           string
 	maxConcurrency int
 	provider       provider.CloudServiceProvider
+	cso            *api.CreateServerOptions
 	wg             *sync.WaitGroup
 }
 
-func New() *Scheduler {
+func New(name string) *Scheduler {
 	return &Scheduler{
+		name:           name,
 		maxConcurrency: 1,
-		provider:       provider.Default(),
 		wg:             &sync.WaitGroup{},
 	}
 }
 
-func (pm *Scheduler) WithMaxConcurrency(maxConcurrency int) *Scheduler {
-	pm.maxConcurrency = maxConcurrency
-	return pm
+func (s *Scheduler) WithCreateServerOptions(cso *api.CreateServerOptions) *Scheduler {
+	s.cso = cso
+	return s
 }
 
-func (pm *Scheduler) WithProvider(provider provider.CloudServiceProvider) *Scheduler {
-	pm.provider = provider
-	return pm
+func (s *Scheduler) WithMaxConcurrency(maxConcurrency int) *Scheduler {
+	s.maxConcurrency = maxConcurrency
+	return s
 }
 
-func (pm *Scheduler) Wait() {
-	// Wait for all tasks to complete
-	pm.wg.Wait()
-	// Destroy all servers
-	// pm.provider.DestroyServerByTag(config.Cfg.DigitalOcean.Droplet.Tag)
+func (s *Scheduler) WithProvider(provider provider.CloudServiceProvider) *Scheduler {
+	s.provider = provider
+	return s
 }
 
-func (pm *Scheduler) GetTaskRunningServer(task *task.DockerTask) (server.Server, error) {
-	tag := config.Cfg.DigitalOcean.Droplet.Tag
-	for _, server := range pm.provider.ListServersByTag(tag) {
-		log.Debug("checking if task running the server", "server", server.IPv4(), "task", task)
-		e := secureshell.NewSSHExecutor(
-			server.IPv4(),
-			config.Cfg.DigitalOcean.SSH.Port,
-			config.Cfg.DigitalOcean.SSH.User,
-			filepath.Join(
-				config.Cfg.DigitalOcean.SSH.Key.Folder,
-				config.Cfg.DigitalOcean.SSH.Key.Name,
-			),
-		)
-		e.Connect()
+func (s *Scheduler) FindOrCreateAnIdleExecutor() (*secureshell.SSHExecutor, error) {
+	for _, server := range s.provider.ListServersByTag(s.name) {
+		e := secureshell.NewSSHExecutor().
+			WithIP(server.IPv4()).
+			WithPrivateKeyPath(s.cso.PrivateKeyPath)
+		err := e.Connect()
+		if err != nil {
+			log.Error("failed to connect to server", "error", err)
+			continue
+		}
+		isIdle := false
 		for {
-			// Check if the current task is already running on the current server
-			cmd := task.DockerPsAllTaskContainersCommand()
-			stdout, _, err := e.RunCommand(cmd)
+			stdout, _, err := e.RunCommand(strings.Join([]string{
+				"docker",
+				"ps",
+				"--quiet",
+				"--filter",
+				fmt.Sprintf("label=task.label=%s", s.name),
+			}, " "))
 			if err != nil {
-				log.Error("error occurred when running command", "error", err, "cmd", cmd)
+				log.Error("failed to run command", "error", err)
+				time.Sleep(5 * time.Second)
 				continue
 			}
-			if stdout != "" {
-				log.Warn("task is already assigned", "server", server.IPv4(), "task", task)
-				return server, nil
+			if strings.TrimSpace(stdout) == "" {
+				isIdle = true
+				break
 			}
-			log.Debug("task is not running", "server", server.IPv4(), "task", task)
-			break
+			time.Sleep(5 * time.Second)
 		}
+		log.Warn("find an idle server", "server", server.IPv4())
+		if isIdle {
+			return e, nil
+		}
+	}
+	servers := s.provider.ListServersByTag(s.name)
+	if len(servers) < s.maxConcurrency {
+		server, err := s.provider.CreateServer(s.cso.WithName(fmt.Sprintf("%s-%d", s.name, len(servers))))
+		if err != nil {
+			log.Error("failed to create server", "error", err)
+			return nil, fmt.Errorf("failed to create server: %s", err.Error())
+		}
+		return secureshell.NewSSHExecutor().
+			WithIP(server.IPv4()).
+			WithPrivateKeyPath(s.cso.PrivateKeyPath), nil
 	}
 	return nil, fmt.Errorf("task is not running on any server")
 }
 
-func (pm *Scheduler) WaitTask(task *task.DockerTask, server server.Server) {
-	defer pm.wg.Done()
-	// Initialize a new SSH executor to interact with the server
-	e := secureshell.NewSSHExecutor(
-		server.IPv4(),
-		config.Cfg.DigitalOcean.SSH.Port,
-		config.Cfg.DigitalOcean.SSH.User,
-		filepath.Join(
-			config.Cfg.DigitalOcean.SSH.Key.Folder,
-			config.Cfg.DigitalOcean.SSH.Key.Name,
-		),
-	)
-	e.Connect()
-	for {
-		// Log waiting status for the task
-		log.Warn("waiting for task to complete", "server", server.IPv4())
-		// Run command to check if Docker containers for the task are still running
-		stdout, _, err := e.RunCommand(task.DockerPsRunningTaskContainersCommand())
+// A task is marked NeedRun if and only if it is not in [task.RUNNING, task.FINISHED] on any listed servers
+func (s *Scheduler) NeedRun(t task.TaskInterface) bool {
+	for _, server := range s.provider.ListServersByTag(s.name) {
+		e := secureshell.NewSSHExecutor().
+			WithIP(server.IPv4()).
+			WithPrivateKeyPath(s.cso.PrivateKeyPath)
+		err := t.Assign(e)
 		if err != nil {
+			log.Error("failed to assign task to executor", "error", err)
 			continue
 		}
-		if stdout == "" {
-			// Task is complete when there are no running containers
-			log.Warn("task done", "server", server.IPv4(), "task", task)
-			// Download output file from the server
-			task.RetrieveOutput(server.IPv4())
-			return
+		status, err := t.Status()
+		if err != nil {
+			log.Error("failed to get task status", "error", err)
+			continue
+		}
+		if status.GetStatus() == task.RUNNING || status.GetStatus() == task.FINISHED {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *Scheduler) Submit(t task.TaskInterface) error {
+	s.wg.Add(1)
+	// Check if the task is already assigned to a server
+	if !s.NeedRun(t) {
+		log.Warn("task already started", t)
+		// Wait task to finish
+		go s.WaitTask(t)
+		return nil
+	}
+	// Now the task is pending state on any server
+	// Find or create an idle server
+	e, err := s.FindOrCreateAnIdleExecutor()
+	if err != nil {
+		return err
+	}
+	// Assign the task to the server (executer)
+	err = t.Assign(e)
+	if err != nil {
+		return err
+	}
+	// Prepare task prerequisites
+	for {
+		err := t.Prepare()
+		if err != nil {
+			log.Error("prepare failed", "error", err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		log.Info("prepare succeed")
+		break
+	}
+	// Start the task
+	for {
+		err := t.Start()
+		if err != nil {
+			log.Error("start failed", "error", err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		log.Info("start succeed")
+		break
+	}
+	// Wait task to finish
+	go s.WaitTask(t)
+	return nil
+}
+
+func (s *Scheduler) WaitTask(t task.TaskInterface) {
+	for {
+		// Wait task status become task.FINISHED
+		status, err := t.Status()
+		if err != nil {
+			log.Error("task status failed", "error", err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		log.Debug("waiting task", "status", status)
+		if status.GetStatus() == task.FINISHED {
+			break
 		}
 		time.Sleep(5 * time.Second)
 	}
+	for {
+		// Download task output files
+		err := t.Download()
+		if err != nil {
+			log.Error("task output download failed", "error", err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		log.Info("task output download succeed")
+		break
+	}
+	s.wg.Done()
 }
 
-func (pm *Scheduler) SubmitDockerTask(task *task.DockerTask) {
-	pm.wg.Add(1)
-
-	// Log information about scheduling the task
-	log.Info("scheduling task", "task", task)
-
-	// Check if the task is already running or finished on any server
-	tag := config.Cfg.DigitalOcean.Droplet.Tag
-	taskRunningServer, err := pm.GetTaskRunningServer(task)
-
-	// If task is already running, return immediately
-	if err == nil {
-		go pm.WaitTask(task, taskRunningServer)
-		return
-	}
-
-	// Find an idle server to run the task
-	idleServer := func() server.Server {
-		for {
-			// Iterate through servers and return the first idle one
-			for _, server := range pm.provider.ListServersByTag(tag) {
-				log.Debug("checking if server is idle", "server", server.IPv4())
-				e := secureshell.NewSSHExecutor(
-					server.IPv4(),
-					config.Cfg.DigitalOcean.SSH.Port,
-					config.Cfg.DigitalOcean.SSH.User,
-					filepath.Join(
-						config.Cfg.DigitalOcean.SSH.Key.Folder,
-						config.Cfg.DigitalOcean.SSH.Key.Name,
-					),
-				)
-				e.Connect()
-				for {
-					cmd := task.DockerPsAllRelatedRunningContainersCommand()
-					stdout, _, err := e.RunCommand(cmd)
-					if err != nil {
-						log.Error("error occurred when running command", "error", err, "cmd", cmd)
-						continue
-					}
-					if stdout == "" {
-						// Server is idle if no related Docker containers are running
-						log.Debug("server is idle", "server", server.IPv4())
-						return server
-					}
-					log.Debug("server is not idle", "server", server.IPv4())
-					break
-				}
-			}
-
-			// If no idle servers are available, create a new one if not exceeding the concurrency limit
-			servers := pm.provider.ListServersByTag(tag)
-			if len(servers) < pm.maxConcurrency {
-				server, err := pm.provider.CreateServer(fmt.Sprintf(
-					"%s-%d",
-					config.Cfg.DigitalOcean.Droplet.Name,
-					len(servers)+1,
-				), tag)
-
-				if err != nil {
-					continue
-				}
-				e := secureshell.NewSSHExecutor(
-					server.IPv4(),
-					config.Cfg.DigitalOcean.SSH.Port,
-					config.Cfg.DigitalOcean.SSH.User,
-					filepath.Join(
-						config.Cfg.DigitalOcean.SSH.Key.Folder,
-						config.Cfg.DigitalOcean.SSH.Key.Name,
-					),
-				)
-				e.Connect()
-				// Run initialization scripts on the new server
-				e.RunExecutable("./assets/scripts/ubuntu-22-04-x64/add-swap.sh")
-
-				// Docker pull
-				e.RunCommand(task.DockerPullCommand())
-			}
-
-			// Wait before checking again for idle servers
-			time.Sleep(5 * time.Second)
-		}
-	}()
-
-	// Execute the task on the found idle server
-	e := secureshell.NewSSHExecutor(
-		idleServer.IPv4(),
-		config.Cfg.DigitalOcean.SSH.Port,
-		config.Cfg.DigitalOcean.SSH.User,
-		filepath.Join(
-			config.Cfg.DigitalOcean.SSH.Key.Folder,
-			config.Cfg.DigitalOcean.SSH.Key.Name,
-		),
-	)
-	e.Connect()
-
-	// Download tranco list
-	e.RunCommand("docker pull ghcr.io/wangyihang/tranco-go-package:main")
-	e.RunCommand("docker run -v /root/.tranco:/root/.tranco ghcr.io/wangyihang/tranco-go-package:main --date 2024-01-01")
-
-	// Run the Docker task command
-	cmd := task.DockerRunCommand()
-	stdout, stderr, err := e.RunCommand(cmd)
-	if err != nil {
-		log.Error("error occurred when running command", "error", err, "cmd", cmd, "stdout", stdout, "stderr", stderr)
-		return
-	}
-
-	// Start waiting for the task to complete in a separate goroutine
-	go pm.WaitTask(task, idleServer)
-	log.Warn("task assigned", "server", idleServer.IPv4(), "task", task, "stdout", stdout, "stderr", stderr)
+func (s *Scheduler) Wait() {
+	// Wait for all tasks to complete
+	s.wg.Wait()
+	// Destroy all servers
+	s.provider.DestroyServerByTag(s.name)
 }

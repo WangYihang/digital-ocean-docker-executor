@@ -17,20 +17,38 @@ import (
 )
 
 type SSHExecutor struct {
-	IP         string
-	Port       int
-	User       string
-	KeyPath    string
-	connection *sshutil.SSHConnection
+	IP             string
+	Port           int
+	User           string
+	PrivateKeyPath string
+	connection     *sshutil.SSHConnection
 }
 
-func NewSSHExecutor(ip string, port int, user string, keyPath string) *SSHExecutor {
+func NewSSHExecutor() *SSHExecutor {
 	return &SSHExecutor{
-		IP:      ip,
-		Port:    port,
-		User:    user,
-		KeyPath: keyPath,
+		Port: 22,
+		User: "root",
 	}
+}
+
+func (s *SSHExecutor) WithIP(ip string) *SSHExecutor {
+	s.IP = ip
+	return s
+}
+
+func (s *SSHExecutor) WithPort(port int) *SSHExecutor {
+	s.Port = port
+	return s
+}
+
+func (s *SSHExecutor) WithUser(user string) *SSHExecutor {
+	s.User = user
+	return s
+}
+
+func (s *SSHExecutor) WithPrivateKeyPath(path string) *SSHExecutor {
+	s.PrivateKeyPath = path
+	return s
 }
 
 func (s *SSHExecutor) String() string {
@@ -39,12 +57,12 @@ func (s *SSHExecutor) String() string {
 		s.IP,
 		s.Port,
 		s.User,
-		s.KeyPath,
+		s.PrivateKeyPath,
 	)
 }
 
 func (s *SSHExecutor) GetConfig() (*ssh.ClientConfig, error) {
-	key, err := os.ReadFile(s.KeyPath)
+	key, err := os.ReadFile(s.PrivateKeyPath)
 	if err != nil {
 		return nil, err
 	}

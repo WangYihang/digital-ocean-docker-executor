@@ -2,13 +2,14 @@ package provider
 
 import (
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/provider/alibaba"
+	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/provider/api"
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/provider/digitalocean"
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/server"
 )
 
 type CloudServiceProvider interface {
 	CreateKeyPair(name string, pub string) error
-	CreateServer(name string, tag string) (server.Server, error)
+	CreateServer(*api.CreateServerOptions) (server.Server, error)
 	ListServers() []server.Server
 	ListServersByName(name string) []server.Server
 	ListServersByTag(tag string) []server.Server
@@ -16,17 +17,17 @@ type CloudServiceProvider interface {
 	DestroyServerByTag(tag string) error
 }
 
-func Use(name string) CloudServiceProvider {
-	switch name {
-	case "alibaba":
-		return alibaba.New()
-	case "digitalocean":
-		return digitalocean.NewProvider()
-	default:
-		return digitalocean.NewProvider()
+func Use(name, token string) CloudServiceProvider {
+	providers := map[string]func(string) CloudServiceProvider{
+		"alibaba": func(token string) CloudServiceProvider {
+			return alibaba.NewProvider(token)
+		},
+		"digitalocean": func(token string) CloudServiceProvider {
+			return digitalocean.NewProvider(token)
+		},
 	}
-}
-
-func Default() CloudServiceProvider {
-	return digitalocean.NewProvider()
+	if provider, ok := providers[name]; ok {
+		return provider(token)
+	}
+	panic("unsupported cloud service provider")
 }
