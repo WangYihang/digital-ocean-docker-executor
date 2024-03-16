@@ -86,6 +86,8 @@ func (s *Scheduler) FindOrCreateAnIdleExecutor() (*secureshell.SSHExecutor, erro
 			log.Error("failed to create server", "error", err)
 			return nil, fmt.Errorf("failed to create server: %s", err.Error())
 		}
+		log.Warn("sleep 5 seconds to avoid digital ocean firewall", "server", server.IPv4())
+		time.Sleep(5 * time.Second)
 		return secureshell.NewSSHExecutor().
 			WithIP(server.IPv4()).
 			WithPrivateKeyPath(s.cso.PrivateKeyPath), nil
