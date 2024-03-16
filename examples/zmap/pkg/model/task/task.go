@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
-	"github.com/WangYihang/digital-ocean-docker-executor/pkg/config"
+	"github.com/WangYihang/digital-ocean-docker-executor/examples/zmap/pkg/option"
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/executor/secureshell"
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/model/task"
 	"github.com/charmbracelet/log"
@@ -13,28 +14,29 @@ import (
 
 type ZmapTask struct {
 	e           *secureshell.SSHExecutor
+	image       string
 	containerID string
 	labels      map[string]interface{}
 	arguments   *ZMapArguments
 }
 
-func Generate() <-chan *ZmapTask {
+func Generate(name string) <-chan *ZmapTask {
 	out := make(chan *ZmapTask)
 	go func() {
 		defer close(out)
 		shards := 254
 		port := 80
 		for shard := range shards {
-			if shard >= 4 {
+			if shard >= 2 {
 				break
 			}
-			out <- NewZmapTask(port, shard, shards)
+			out <- New(port, shard, shards, name)
 		}
 	}()
 	return out
 }
 
-func NewZmapTask(port, shard, shards int) *ZmapTask {
+func New(port, shard, shards int, label string) *ZmapTask {
 	filename := fmt.Sprintf("zmap-%d-%d-%d", port, shard, shards)
 	z := &ZmapTask{
 		arguments: NewZmapArguments().
@@ -47,8 +49,9 @@ func NewZmapTask(port, shard, shards int) *ZmapTask {
 			WithStatusUpdateFileName(fmt.Sprintf("%s.status", filename)).
 			WithLogFileName(fmt.Sprintf("%s.log", filename)),
 		labels: make(map[string]interface{}),
+		image:  "ghcr.io/zmap/zmap:latest",
 	}
-	z.labels["task.label"] = config.Cfg.Task.Label
+	z.labels["task.label"] = label
 	z.labels["task.shard"] = z.arguments.Shard
 	z.labels["task.shards"] = z.arguments.Shards
 	return z
@@ -69,7 +72,16 @@ func (z *ZmapTask) Assign(e *secureshell.SSHExecutor) error {
 }
 
 func (z *ZmapTask) Prepare() error {
-	z.e.RunCommand("docker pull ghcr.io/zmap/zmap:latest")
+	// Install amazon s3
+	if option.Opt.S3Option.S3AccessKey != "" {
+		z.e.RunCommand(strings.Join([]string{
+			"docker", "pull", "amazon/aws-cli",
+		}, " "))
+	}
+	// Pull the docker image
+	z.e.RunCommand(strings.Join([]string{
+		"docker", "pull", z.image,
+	}, " "))
 	return nil
 }
 
@@ -83,7 +95,7 @@ func (z *ZmapTask) Start() error {
 	for k, v := range z.labels {
 		arguments = append(arguments, "--label", fmt.Sprintf("%s=%v", k, v))
 	}
-	arguments = append(arguments, "ghcr.io/zmap/zmap:latest")
+	arguments = append(arguments, z.image)
 	arguments = append(arguments, z.arguments.String())
 	stdout, stderr, err := z.e.RunCommand(strings.Join(arguments, " "))
 	if err != nil {
@@ -168,6 +180,16 @@ func (z *ZmapTask) Status() (task.StatusInterface, error) {
 }
 
 func (z *ZmapTask) Download() error {
+	// upload to amazon s3
+	if option.Opt.S3AccessKey != "" {
+		today := time.Now().Format("2006-01-02")
+		z.e.RunCommand(fmt.Sprintf("docker run --rm -it -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_access_key_id %s", option.Opt.S3Option.S3AccessKey))
+		z.e.RunCommand(fmt.Sprintf("docker run --rm -it -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_secret_access_key %s", option.Opt.S3Option.S3SecretKey))
+		z.e.RunCommand(fmt.Sprintf("docker run --rm -it -v ~/.aws:/root/.aws amazon/aws-cli configure set default.region %s", option.Opt.S3Option.S3Region))
+		z.e.RunCommand(fmt.Sprintf("docker run --rm -it -v ~/.aws:/root/.aws amazon/aws-cli s3 cp /data s3://dode/%s/%s --recursive", today, "/data"))
+	}
+
+	// Download to local
 	z.e.DownloadFile(filepath.Join("/data", z.arguments.OutputFileName), filepath.Join("data", filepath.Base(z.arguments.OutputFileName)))
 	z.e.DownloadFile(filepath.Join("/data", z.arguments.StatusUpdateFileName), filepath.Join("data", filepath.Base(z.arguments.StatusUpdateFileName)))
 	z.e.DownloadFile(filepath.Join("/data", z.arguments.LogFileName), filepath.Join("data", filepath.Base(z.arguments.LogFileName)))
