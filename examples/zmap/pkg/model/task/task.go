@@ -25,7 +25,7 @@ func Generate(name string) <-chan *ZmapTask {
 	go func() {
 		defer close(out)
 		shards := 254
-		port := 80
+		port := 443
 		for shard := range shards {
 			if shard >= 2 {
 				break
@@ -72,16 +72,15 @@ func (z *ZmapTask) Assign(e *secureshell.SSHExecutor) error {
 }
 
 func (z *ZmapTask) Prepare() error {
-	// Install amazon s3
-	if option.Opt.S3Option.S3AccessKey != "" {
+	images := []string{
+		"amazon/aws-cli",
+		z.image,
+	}
+	for _, image := range images {
 		z.e.RunCommand(strings.Join([]string{
-			"docker", "pull", "amazon/aws-cli",
+			"docker", "pull", image,
 		}, " "))
 	}
-	// Pull the docker image
-	z.e.RunCommand(strings.Join([]string{
-		"docker", "pull", z.image,
-	}, " "))
 	return nil
 }
 
@@ -183,10 +182,10 @@ func (z *ZmapTask) Download() error {
 	// upload to amazon s3
 	if option.Opt.S3AccessKey != "" {
 		today := time.Now().Format("2006-01-02")
-		z.e.RunCommand(fmt.Sprintf("docker run --rm -it -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_access_key_id %s", option.Opt.S3Option.S3AccessKey))
-		z.e.RunCommand(fmt.Sprintf("docker run --rm -it -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_secret_access_key %s", option.Opt.S3Option.S3SecretKey))
-		z.e.RunCommand(fmt.Sprintf("docker run --rm -it -v ~/.aws:/root/.aws amazon/aws-cli configure set default.region %s", option.Opt.S3Option.S3Region))
-		z.e.RunCommand(fmt.Sprintf("docker run --rm -it -v ~/.aws:/root/.aws amazon/aws-cli s3 cp /data s3://dode/%s/%s --recursive", today, "/data"))
+		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_access_key_id %s", option.Opt.S3Option.S3AccessKey))
+		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_secret_access_key %s", option.Opt.S3Option.S3SecretKey))
+		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli configure set default.region %s", option.Opt.S3Option.S3Region))
+		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli s3 cp /data s3://dode/%s --recursive", today))
 	}
 
 	// Download to local
