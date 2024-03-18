@@ -13,11 +13,12 @@ import (
 )
 
 type ZmapTask struct {
-	e           *secureshell.SSHExecutor
-	image       string
-	containerID string
-	labels      map[string]interface{}
-	arguments   *ZMapArguments
+	e            *secureshell.SSHExecutor
+	image        string
+	containerID  string
+	labels       map[string]interface{}
+	arguments    *ZMapArguments
+	outputFolder string
 }
 
 func Generate(name string, port int, bandwidth string) <-chan *ZmapTask {
@@ -26,6 +27,9 @@ func Generate(name string, port int, bandwidth string) <-chan *ZmapTask {
 		defer close(out)
 		shards := 254
 		for shard := range shards {
+			if shard >= 4 {
+				break
+			}
 			out <- New(port, shard, shards, name, bandwidth)
 		}
 	}()
@@ -33,20 +37,23 @@ func Generate(name string, port int, bandwidth string) <-chan *ZmapTask {
 }
 
 func New(port, shard, shards int, label, bandwidth string) *ZmapTask {
-	filename := fmt.Sprintf("zmap-%d-%d-%d", port, shard, shards)
+	folder := fmt.Sprintf("/data/zmap/%d", port)
+	path := fmt.Sprintf("zmap-%d-%d-%d", port, shard, shards)
 	z := &ZmapTask{
 		arguments: NewZmapArguments().
 			WithTargetPort(port).
 			WithShard(shard).
 			WithShards(shards).
 			WithBandWidth(bandwidth).
-			WithOutputFileName(fmt.Sprintf("%s.json", filename)).
-			WithStatusUpdateFileName(fmt.Sprintf("%s.status", filename)).
-			WithLogFileName(fmt.Sprintf("%s.log", filename)),
+			WithOutputFileName(fmt.Sprintf("%s.json", path)).
+			WithStatusUpdateFileName(fmt.Sprintf("%s.status", path)).
+			WithLogFileName(fmt.Sprintf("%s.log", path)),
 		labels: make(map[string]interface{}),
 		image:  "ghcr.io/zmap/zmap:latest",
 	}
+	z.outputFolder = folder
 	z.labels["task.label"] = label
+	z.labels["task.port"] = port
 	z.labels["task.shard"] = z.arguments.Shard
 	z.labels["task.shards"] = z.arguments.Shards
 	return z
@@ -77,7 +84,9 @@ func (z *ZmapTask) Prepare() error {
 		}, " "))
 	}
 	z.e.RunCommand(fmt.Sprintf(
-		"mkdir -p /data && wget -O /data/%d-%d-ipinfo.io.json https://ipinfo.io/json",
+		"mkdir -p %s && wget -O %s/ipinfo-%d-%d.json https://ipinfo.io/json",
+		z.outputFolder,
+		z.outputFolder,
 		z.arguments.Shard,
 		z.arguments.Shards,
 	))
@@ -89,7 +98,10 @@ func (z *ZmapTask) Start() error {
 		"docker", "run",
 		"--interactive", "--tty", "--detach",
 		"--network", "host",
-		"--volume", "/data:/data",
+		"--volume", fmt.Sprintf(
+			"%s:/data",
+			z.outputFolder,
+		),
 	}
 	for k, v := range z.labels {
 		arguments = append(arguments, "--label", fmt.Sprintf("%s=%v", k, v))
@@ -163,7 +175,7 @@ func (z *ZmapTask) Status() (task.StatusInterface, error) {
 		"tail",
 		"-n",
 		"1",
-		filepath.Join("/data", z.arguments.StatusUpdateFileName),
+		filepath.Join(z.outputFolder, z.arguments.StatusUpdateFileName),
 	}, " "))
 	if err != nil {
 		return PendingProgress, nil
@@ -184,10 +196,10 @@ func (z *ZmapTask) Download() error {
 	// upload to amazon s3
 	if option.Opt.S3AccessKey != "" {
 		today := time.Now().Format("2006-01-02")
-		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_access_key_id %s", option.Opt.S3Option.S3AccessKey))
-		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_secret_access_key %s", option.Opt.S3Option.S3SecretKey))
-		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli configure set default.region %s", option.Opt.S3Option.S3Region))
-		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli s3 cp /data s3://dode/%s/%d/%s/ --recursive", option.Opt.Name, option.Opt.Port, today))
+		z.e.RunCommand(fmt.Sprintf("docker run --rm -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_access_key_id %s", option.Opt.S3Option.S3AccessKey))
+		z.e.RunCommand(fmt.Sprintf("docker run --rm -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_secret_access_key %s", option.Opt.S3Option.S3SecretKey))
+		z.e.RunCommand(fmt.Sprintf("docker run --rm -v ~/.aws:/root/.aws amazon/aws-cli configure set default.region %s", option.Opt.S3Option.S3Region))
+		z.e.RunCommand(fmt.Sprintf("docker run --rm -v %s:/data -v ~/.aws:/root/.aws amazon/aws-cli s3 cp /data/ s3://dode/%s/%d/%s/ --recursive", z.outputFolder, option.Opt.Name, option.Opt.Port, today))
 	}
 
 	// Download to local
