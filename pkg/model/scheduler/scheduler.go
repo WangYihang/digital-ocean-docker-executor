@@ -45,47 +45,52 @@ func (s *Scheduler) WithProvider(provider provider.CloudServiceProvider) *Schedu
 }
 
 func (s *Scheduler) FindOrCreateAnIdleExecutor() (*secureshell.SSHExecutor, error) {
-	for _, server := range s.provider.ListServersByTag(s.name) {
-		e := secureshell.NewSSHExecutor().
-			WithIP(server.IPv4()).
-			WithPrivateKeyPath(s.cso.PrivateKeyPath)
-		err := e.Connect()
-		if err != nil {
-			log.Error("failed to connect to server", "error", err)
-			continue
+	for {
+		// Check if there is an idle server
+		for _, server := range s.provider.ListServersByTag(s.name) {
+			e := secureshell.NewSSHExecutor().
+				WithIP(server.IPv4()).
+				WithPrivateKeyPath(s.cso.PrivateKeyPath)
+			err := e.Connect()
+			if err != nil {
+				log.Error("failed to connect to server", "error", err)
+				continue
+			}
+			stdout, _, err := e.RunCommand(strings.Join([]string{
+				"docker",
+				"ps",
+				"--quiet",
+				"--filter",
+				fmt.Sprintf("label=task.label=%s", s.name),
+			}, " "))
+			if err != nil {
+				log.Error("failed to run command", "error", err)
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			log.Warn("find an idle server", "server", server.IPv4())
+			if strings.TrimSpace(stdout) == "" {
+				return e, nil
+			}
 		}
-		stdout, _, err := e.RunCommand(strings.Join([]string{
-			"docker",
-			"ps",
-			"--quiet",
-			"--filter",
-			fmt.Sprintf("label=task.label=%s", s.name),
-		}, " "))
-		if err != nil {
-			log.Error("failed to run command", "error", err)
+		// Check if the number of servers is less than max concurrency
+		servers := s.provider.ListServersByTag(s.name)
+		if len(servers) < s.maxConcurrency {
+			// Create a new server
+			log.Info("create a new server because of no idle server and not reach max concurrency")
+			server, err := s.provider.CreateServer(s.cso.WithName(fmt.Sprintf("%s-%d", s.name, len(servers))))
+			if err != nil {
+				log.Error("failed to create server", "error", err)
+				return nil, fmt.Errorf("failed to create server: %s", err.Error())
+			}
+			log.Warn("sleep 5 seconds to avoid digital ocean firewall", "server", server.IPv4())
 			time.Sleep(5 * time.Second)
-			continue
+			return secureshell.NewSSHExecutor().
+				WithIP(server.IPv4()).
+				WithPrivateKeyPath(s.cso.PrivateKeyPath), nil
 		}
-		log.Warn("find an idle server", "server", server.IPv4())
-		if strings.TrimSpace(stdout) == "" {
-			return e, nil
-		}
-	}
-	servers := s.provider.ListServersByTag(s.name)
-	if len(servers) < s.maxConcurrency {
-		log.Info("create a new server because of no idle server and not reach max concurrency")
-		server, err := s.provider.CreateServer(s.cso.WithName(fmt.Sprintf("%s-%d", s.name, len(servers))))
-		if err != nil {
-			log.Error("failed to create server", "error", err)
-			return nil, fmt.Errorf("failed to create server: %s", err.Error())
-		}
-		log.Warn("sleep 5 seconds to avoid digital ocean firewall", "server", server.IPv4())
 		time.Sleep(5 * time.Second)
-		return secureshell.NewSSHExecutor().
-			WithIP(server.IPv4()).
-			WithPrivateKeyPath(s.cso.PrivateKeyPath), nil
 	}
-	return nil, fmt.Errorf("task is not running on any server")
 }
 
 // A task is marked NeedRun if and only if it is not in [task.RUNNING, task.FINISHED] on any listed servers
@@ -113,6 +118,7 @@ func (s *Scheduler) NeedRun(t task.TaskInterface) bool {
 }
 
 func (s *Scheduler) Submit(t task.TaskInterface) error {
+	log.Info("submitting task", "task", t.String())
 	s.wg.Add(1)
 	// Check if the task is already assigned to a server
 	if !s.NeedRun(t) {
@@ -160,6 +166,8 @@ func (s *Scheduler) Submit(t task.TaskInterface) error {
 }
 
 func (s *Scheduler) WaitTask(t task.TaskInterface) {
+	defer s.wg.Done()
+
 	for {
 		// Wait task status become task.FINISHED
 		status, err := t.Status()
@@ -185,7 +193,6 @@ func (s *Scheduler) WaitTask(t task.TaskInterface) {
 		log.Info("task output download succeed")
 		break
 	}
-	s.wg.Done()
 }
 
 func (s *Scheduler) Wait() {

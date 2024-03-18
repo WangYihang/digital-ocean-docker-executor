@@ -27,9 +27,6 @@ func Generate(name string, port int, bandwidth string) <-chan *ZmapTask {
 		defer close(out)
 		shards := 254
 		for shard := range shards {
-			if shard >= 4 {
-				break
-			}
 			out <- New(port, shard, shards, name, bandwidth)
 		}
 	}()
