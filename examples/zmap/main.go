@@ -36,7 +36,7 @@ func main() {
 				WithPublicKeyName("zmap"),
 		).
 		WithMaxConcurrency(1)
-	for t := range zmap_task.Generate(option.Opt.Name) {
+	for t := range zmap_task.Generate(option.Opt.Name, option.Opt.Port) {
 		s.Submit(t)
 	}
 	s.Wait()

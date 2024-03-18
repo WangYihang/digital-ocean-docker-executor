@@ -20,16 +20,12 @@ type ZmapTask struct {
 	arguments   *ZMapArguments
 }
 
-func Generate(name string) <-chan *ZmapTask {
+func Generate(name string, port int) <-chan *ZmapTask {
 	out := make(chan *ZmapTask)
 	go func() {
 		defer close(out)
 		shards := 254
-		port := 443
 		for shard := range shards {
-			if shard >= 2 {
-				break
-			}
 			out <- New(port, shard, shards, name)
 		}
 	}()

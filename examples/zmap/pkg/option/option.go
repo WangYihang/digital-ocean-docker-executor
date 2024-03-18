@@ -25,10 +25,15 @@ type DropletOption struct {
 	DropletPrivateKeyPath string `long:"droplet-private-key-path" description:"Private key path" required:"true"`
 }
 
+type ZMapOption struct {
+	Port int `long:"port" description:"Port" required:"true"`
+}
+
 type Option struct {
 	S3Option
 	DigitalOceanOption
 	DropletOption
+	ZMapOption
 	Name        string `long:"name" description:"Task name" required:"true"`
 	LogFilePath string `long:"log-file-path" description:"Log file path" required:"true" default:"zmap-task.log"`
 }
