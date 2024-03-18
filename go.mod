@@ -3,7 +3,6 @@ module github.com/WangYihang/digital-ocean-docker-executor
 go 1.22
 
 require (
-	github.com/BurntSushi/toml v0.3.1
 	github.com/WangYihang/gojob v0.0.10-0.20240314083413-d25d34f977cc
 	github.com/charmbracelet/log v0.3.1
 	github.com/digitalocean/godo v1.108.0
@@ -12,7 +11,6 @@ require (
 	github.com/jszwec/csvutil v1.9.0
 	github.com/pkg/sftp v1.13.5
 	golang.org/x/crypto v0.14.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
