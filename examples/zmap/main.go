@@ -35,7 +35,7 @@ func main() {
 				WithPublicKeyPath(option.Opt.DropletPublicKeyPath).
 				WithPublicKeyName("zmap"),
 		).
-		WithMaxConcurrency(1)
+		WithMaxConcurrency(option.Opt.NumDroplets)
 	for t := range zmap_task.Generate(option.Opt.Name, option.Opt.Port) {
 		s.Submit(t)
 	}

@@ -14,6 +14,7 @@ type S3Option struct {
 
 type DigitalOceanOption struct {
 	DigitalOceanToken string `long:"do-token" description:"DigitalOcean token" required:"true"`
+	NumDroplets       int    `long:"num-droplets" description:"Number of droplets" required:"true"`
 }
 
 type DropletOption struct {

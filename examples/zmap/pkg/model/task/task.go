@@ -39,8 +39,7 @@ func New(port, shard, shards int, label string) *ZmapTask {
 			WithTargetPort(port).
 			WithShard(shard).
 			WithShards(shards).
-			WithBandWidth("1M").
-			WithSubnet("104.245.0.0/8").
+			WithBandWidth("64M").
 			WithOutputFileName(fmt.Sprintf("%s.json", filename)).
 			WithStatusUpdateFileName(fmt.Sprintf("%s.status", filename)).
 			WithLogFileName(fmt.Sprintf("%s.log", filename)),
