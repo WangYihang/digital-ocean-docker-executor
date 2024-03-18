@@ -29,7 +29,8 @@ type Option struct {
 	S3Option
 	DigitalOceanOption
 	DropletOption
-	Name string `long:"name" description:"Task name" required:"true"`
+	Name        string `long:"name" description:"Task name" required:"true"`
+	LogFilePath string `long:"log-file-path" description:"Log file path" required:"true" default:"zmap-task.log"`
 }
 
 var Opt Option

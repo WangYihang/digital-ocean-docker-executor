@@ -14,7 +14,7 @@ import (
 
 func init() {
 	log.SetLevel(log.DebugLevel)
-	fd, err := os.OpenFile("zmap-task.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	fd, err := os.OpenFile(option.Opt.LogFilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		panic(err)
 	}
