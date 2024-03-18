@@ -34,7 +34,7 @@ func Generate(name string, port int, bandwidth string) <-chan *ZmapTask {
 }
 
 func New(port, shard, shards int, label, bandwidth string) *ZmapTask {
-	folder := fmt.Sprintf("/data/zmap/%d", port)
+	folder := fmt.Sprintf("/data/zmap/port-%d/shards-%d/shard-%d", port, shards, shard)
 	path := fmt.Sprintf("zmap-%d-%d-%d", port, shard, shards)
 	z := &ZmapTask{
 		arguments: NewZmapArguments().
