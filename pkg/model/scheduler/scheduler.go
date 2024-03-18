@@ -168,7 +168,7 @@ func (s *Scheduler) WaitTask(t task.TaskInterface) {
 			time.Sleep(5 * time.Second)
 			continue
 		}
-		log.Debug("waiting task", "status", status)
+		log.Debug("waiting task", "status", status, "task", t.String())
 		if status.GetStatus() == task.FINISHED {
 			break
 		}

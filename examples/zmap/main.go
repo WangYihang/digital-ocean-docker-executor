@@ -22,6 +22,7 @@ func init() {
 }
 
 func main() {
+	log.Info("starting", "options", option.Opt)
 	s := scheduler.New(option.Opt.Name).
 		WithProvider(provider.Use("digitalocean", option.Opt.DigitalOceanToken)).
 		WithCreateServerOptions(
@@ -33,7 +34,7 @@ func main() {
 				WithImage(option.Opt.DropletImage).
 				WithPrivateKeyPath(option.Opt.DropletPrivateKeyPath).
 				WithPublicKeyPath(option.Opt.DropletPublicKeyPath).
-				WithPublicKeyName("zmap"),
+				WithPublicKeyName(option.Opt.Name),
 		).
 		WithMaxConcurrency(option.Opt.NumDroplets)
 	for t := range zmap_task.Generate(option.Opt.Name, option.Opt.Port, option.Opt.BandWidth) {

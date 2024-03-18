@@ -77,7 +77,7 @@ func (z *ZmapTask) Prepare() error {
 		}, " "))
 	}
 	z.e.RunCommand(fmt.Sprintf(
-		"wget -O /data/zmap-%d-%d.json https://ipinfo.io/json",
+		"mkdir -p /data && wget -O /data/%d-%d-ipinfo.io.json https://ipinfo.io/json",
 		z.arguments.Shard,
 		z.arguments.Shards,
 	))
@@ -125,6 +125,7 @@ func (z *ZmapTask) Status() (task.StatusInterface, error) {
 		arguments = append(arguments, "--filter", fmt.Sprintf("label=%s=%v", k, v))
 	}
 	stdout, stderr, err := z.e.RunCommand(strings.Join(arguments, " "))
+	log.Info("zmap status", "stdout", stdout, "stderr", stderr, "err", err, "task", z.String())
 	if err != nil {
 		return nil, err
 	}
@@ -136,6 +137,7 @@ func (z *ZmapTask) Status() (task.StatusInterface, error) {
 	}
 
 	log.Info("zmap have already been started", "container", stdout)
+	z.containerID = strings.TrimSpace(stdout)
 
 	// check if the container is running
 	stdout, stderr, err = z.e.RunCommand(strings.Join([]string{
@@ -185,7 +187,7 @@ func (z *ZmapTask) Download() error {
 		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_access_key_id %s", option.Opt.S3Option.S3AccessKey))
 		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_secret_access_key %s", option.Opt.S3Option.S3SecretKey))
 		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli configure set default.region %s", option.Opt.S3Option.S3Region))
-		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli s3 cp /data s3://dode/%s-%d/%s/ --recursive", option.Opt.Name, option.Opt.Port, today))
+		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli s3 cp /data s3://dode/%s/%d/%s/ --recursive", option.Opt.Name, option.Opt.Port, today))
 	}
 
 	// Download to local
