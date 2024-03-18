@@ -27,7 +27,8 @@ type DropletOption struct {
 }
 
 type ZMapOption struct {
-	Port int `long:"port" description:"Port" required:"true"`
+	Port      int    `long:"port" description:"Port" required:"true"`
+	BandWidth string `long:"bandwidth" description:"Bandwidth" required:"true" default:"1M"`
 }
 
 type Option struct {

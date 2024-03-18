@@ -20,26 +20,26 @@ type ZmapTask struct {
 	arguments   *ZMapArguments
 }
 
-func Generate(name string, port int) <-chan *ZmapTask {
+func Generate(name string, port int, bandwidth string) <-chan *ZmapTask {
 	out := make(chan *ZmapTask)
 	go func() {
 		defer close(out)
 		shards := 254
 		for shard := range shards {
-			out <- New(port, shard, shards, name)
+			out <- New(port, shard, shards, name, bandwidth)
 		}
 	}()
 	return out
 }
 
-func New(port, shard, shards int, label string) *ZmapTask {
+func New(port, shard, shards int, label, bandwidth string) *ZmapTask {
 	filename := fmt.Sprintf("zmap-%d-%d-%d", port, shard, shards)
 	z := &ZmapTask{
 		arguments: NewZmapArguments().
 			WithTargetPort(port).
 			WithShard(shard).
 			WithShards(shards).
-			WithBandWidth("64M").
+			WithBandWidth(bandwidth).
 			WithOutputFileName(fmt.Sprintf("%s.json", filename)).
 			WithStatusUpdateFileName(fmt.Sprintf("%s.status", filename)).
 			WithLogFileName(fmt.Sprintf("%s.log", filename)),
@@ -180,7 +180,7 @@ func (z *ZmapTask) Download() error {
 		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_access_key_id %s", option.Opt.S3Option.S3AccessKey))
 		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_secret_access_key %s", option.Opt.S3Option.S3SecretKey))
 		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli configure set default.region %s", option.Opt.S3Option.S3Region))
-		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli s3 cp /data s3://dode/%s --recursive", today))
+		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli s3 cp /data s3://dode/zmap-%d/%s/ --recursive", option.Opt.Port, today))
 	}
 
 	// Download to local
