@@ -36,7 +36,7 @@ type Option struct {
 	DigitalOceanOption
 	DropletOption
 	ZMapOption
-	Name        string `long:"name" description:"Task name" required:"true"`
+	Name        string `long:"name" description:"Task name" required:"true" default:"zmap-task"`
 	LogFilePath string `long:"log-file-path" description:"Log file path" required:"true" default:"zmap-task.log"`
 }
 
