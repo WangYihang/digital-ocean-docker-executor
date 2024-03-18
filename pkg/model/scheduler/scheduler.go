@@ -14,23 +14,30 @@ import (
 )
 
 type Scheduler struct {
-	name           string
-	maxConcurrency int
-	provider       provider.CloudServiceProvider
-	cso            *api.CreateServerOptions
-	wg             *sync.WaitGroup
+	name                 string
+	maxConcurrency       int
+	provider             provider.CloudServiceProvider
+	cso                  *api.CreateServerOptions
+	wg                   *sync.WaitGroup
+	destroyAfterFinished bool
 }
 
 func New(name string) *Scheduler {
 	return &Scheduler{
-		name:           name,
-		maxConcurrency: 1,
-		wg:             &sync.WaitGroup{},
+		name:                 name,
+		maxConcurrency:       1,
+		wg:                   &sync.WaitGroup{},
+		destroyAfterFinished: true,
 	}
 }
 
 func (s *Scheduler) WithCreateServerOptions(cso *api.CreateServerOptions) *Scheduler {
 	s.cso = cso
+	return s
+}
+
+func (s *Scheduler) WithDestroyAfterFinished(destroyAfterFinished bool) *Scheduler {
+	s.destroyAfterFinished = destroyAfterFinished
 	return s
 }
 
@@ -199,5 +206,7 @@ func (s *Scheduler) Wait() {
 	// Wait for all tasks to complete
 	s.wg.Wait()
 	// Destroy all servers
-	s.provider.DestroyServerByTag(s.name)
+	if s.destroyAfterFinished {
+		s.provider.DestroyServerByTag(s.name)
+	}
 }
