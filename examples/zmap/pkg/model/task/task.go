@@ -76,6 +76,11 @@ func (z *ZmapTask) Prepare() error {
 			"docker", "pull", image,
 		}, " "))
 	}
+	z.e.RunCommand(fmt.Sprintf(
+		"wget -O /data/zmap-%d-%d.json https://ipinfo.io/json",
+		z.arguments.Shard,
+		z.arguments.Shards,
+	))
 	return nil
 }
 
@@ -180,7 +185,7 @@ func (z *ZmapTask) Download() error {
 		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_access_key_id %s", option.Opt.S3Option.S3AccessKey))
 		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_secret_access_key %s", option.Opt.S3Option.S3SecretKey))
 		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli configure set default.region %s", option.Opt.S3Option.S3Region))
-		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli s3 cp /data s3://dode/zmap-%d/%s/ --recursive", option.Opt.Port, today))
+		z.e.RunCommand(fmt.Sprintf("docker run --rm -v /data:/data -v ~/.aws:/root/.aws amazon/aws-cli s3 cp /data s3://dode/%s-%d/%s/ --recursive", option.Opt.Name, option.Opt.Port, today))
 	}
 
 	// Download to local
