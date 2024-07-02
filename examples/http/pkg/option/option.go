@@ -4,13 +4,12 @@ import (
 	"os"
 
 	"github.com/WangYihang/digital-ocean-docker-executor/pkg/option"
-	"github.com/WangYihang/gojob/pkg/version"
+	"github.com/WangYihang/digital-ocean-docker-executor/pkg/version"
 	"github.com/jessevdk/go-flags"
 )
 
-type ZMapOption struct {
-	Port      int    `long:"port" description:"Port" required:"true"`
-	BandWidth string `long:"bandwidth" description:"Bandwidth" required:"true" default:"1M"`
+type HTTPGrabOption struct {
+	Timeout int `long:"timeout" description:"Timeout" required:"true" default:"16"`
 }
 
 type Option struct {
@@ -18,7 +17,7 @@ type Option struct {
 	option.DigitalOceanOption
 	option.DropletOption
 	option.MetaOption
-	ZMapOption
+	HTTPGrabOption
 }
 
 var Opt Option
