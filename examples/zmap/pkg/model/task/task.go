@@ -196,7 +196,7 @@ func (z *ZmapTask) Download() error {
 		z.e.RunCommand(fmt.Sprintf("docker run --rm -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_access_key_id %s", option.Opt.S3Option.S3AccessKey))
 		z.e.RunCommand(fmt.Sprintf("docker run --rm -v ~/.aws:/root/.aws amazon/aws-cli configure set aws_secret_access_key %s", option.Opt.S3Option.S3SecretKey))
 		z.e.RunCommand(fmt.Sprintf("docker run --rm -v ~/.aws:/root/.aws amazon/aws-cli configure set default.region %s", option.Opt.S3Option.S3Region))
-		z.e.RunCommand(fmt.Sprintf("docker run --rm -v %s:/data -v ~/.aws:/root/.aws amazon/aws-cli s3 cp /data/ s3://dode/%s/%d/%s/ --recursive", z.outputFolder, option.Opt.Name, option.Opt.Port, today))
+		z.e.RunCommand(fmt.Sprintf("docker run --rm -v %s:/data -v ~/.aws:/root/.aws amazon/aws-cli s3 cp /data/ s3://%s/%s/%d/%s/ --recursive", z.outputFolder, option.Opt.S3Option.S3BucketName, option.Opt.Name, option.Opt.Port, today))
 	}
 
 	// Download to local

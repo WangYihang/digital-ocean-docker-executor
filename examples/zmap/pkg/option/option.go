@@ -7,9 +7,10 @@ import (
 )
 
 type S3Option struct {
-	S3AccessKey string `long:"s3-access-key" description:"AWS access key"`
-	S3SecretKey string `long:"s3-secret-key" description:"AWS secret key"`
-	S3Region    string `long:"s3-region" description:"AWS region" default:"us-west-2"`
+	S3AccessKey  string `long:"s3-access-key" description:"AWS access key"`
+	S3SecretKey  string `long:"s3-secret-key" description:"AWS secret key"`
+	S3Region     string `long:"s3-region" description:"AWS region" default:"us-west-2"`
+	S3BucketName string `long:"bucket-name" description:"Bucket name" required:"true"`
 }
 
 type DigitalOceanOption struct {
