@@ -199,7 +199,7 @@ func (h *HTTPGrabTask) Status() (task.StatusInterface, error) {
 	stdout, stderr, err = h.e.RunCommand(strings.Join([]string{
 		"tail",
 		"-n",
-		"1",
+		"2",
 		filepath.Join(h.folder, filepath.Base(h.arguments.StatusFilePath)),
 	}, " "))
 	if err != nil {
@@ -210,7 +210,7 @@ func (h *HTTPGrabTask) Status() (task.StatusInterface, error) {
 	}
 
 	// parse the status file
-	progress, err := NewHTTPGrabProgress(stdout)
+	progress, err := NewHTTPGrabProgress(stdout[0:strings.Index(stdout, "\n")])
 	if err != nil {
 		return nil, err
 	}

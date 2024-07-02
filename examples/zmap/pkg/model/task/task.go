@@ -171,7 +171,7 @@ func (z *ZmapTask) Status() (task.StatusInterface, error) {
 	stdout, stderr, err = z.e.RunCommand(strings.Join([]string{
 		"tail",
 		"-n",
-		"1",
+		"2",
 		filepath.Join(z.outputFolder, z.arguments.StatusUpdateFileName),
 	}, " "))
 	if err != nil {
@@ -182,7 +182,7 @@ func (z *ZmapTask) Status() (task.StatusInterface, error) {
 	}
 
 	// parse the status file
-	progress, err := NewZMapProgress(stdout)
+	progress, err := NewZMapProgress(stdout[0:strings.Index(stdout, "\n")])
 	if err != nil {
 		return nil, err
 	}
