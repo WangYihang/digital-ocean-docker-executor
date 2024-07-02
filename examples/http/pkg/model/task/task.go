@@ -209,8 +209,10 @@ func (h *HTTPGrabTask) Status() (task.StatusInterface, error) {
 		return PendingProgress, nil
 	}
 
+	log.Info("task status", "stdout", stdout, "stderr", stderr, "err", err)
+
 	// parse the status file
-	progress, err := NewHTTPGrabProgress(stdout[0:strings.Index(stdout, "\n")])
+	progress, err := NewHTTPGrabProgress(strings.Split(stdout, "\n")[0])
 	if err != nil {
 		return nil, err
 	}

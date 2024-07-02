@@ -3,7 +3,7 @@ module github.com/WangYihang/digital-ocean-docker-executor
 go 1.22
 
 require (
-	github.com/WangYihang/gojob v0.0.11-0.20240702132337-aaf15544e4dc
+	github.com/WangYihang/gojob v0.0.11-0.20240702151914-b2b4ff8b29b5
 	github.com/charmbracelet/log v0.3.1
 	github.com/digitalocean/godo v1.108.0
 	github.com/google/uuid v1.6.0
@@ -14,7 +14,7 @@ require (
 )
 
 require (
-	github.com/WangYihang/http-grab v0.0.9-0.20240702141154-ab2f01aac0ae // indirect
+	github.com/WangYihang/http-grab v0.0.9-0.20240702152011-a32b6aea3959 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect

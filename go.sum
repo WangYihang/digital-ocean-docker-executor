@@ -2,12 +2,16 @@ github.com/WangYihang/gojob v0.0.11-0.20240702130447-d154bd396c48 h1:S79eFa7WnwG
 github.com/WangYihang/gojob v0.0.11-0.20240702130447-d154bd396c48/go.mod h1:NEdrSJeQOqSFhk6UdS4pvBHFkznpgON9924mKaxh0Oo=
 github.com/WangYihang/gojob v0.0.11-0.20240702132337-aaf15544e4dc h1:VX+s6/WCi9JuIoE/qjvQwHT77WAyVlAVB8omwE86dD8=
 github.com/WangYihang/gojob v0.0.11-0.20240702132337-aaf15544e4dc/go.mod h1:NEdrSJeQOqSFhk6UdS4pvBHFkznpgON9924mKaxh0Oo=
+github.com/WangYihang/gojob v0.0.11-0.20240702151914-b2b4ff8b29b5 h1:ntsaVTZQMVu2O1itFZHxXG2PvKCJ5HxlYOQ6aw7VzY0=
+github.com/WangYihang/gojob v0.0.11-0.20240702151914-b2b4ff8b29b5/go.mod h1:NEdrSJeQOqSFhk6UdS4pvBHFkznpgON9924mKaxh0Oo=
 github.com/WangYihang/http-grab v0.0.9-0.20240702132448-aa9b5a592656 h1:7+xaKUc/vocs6itJ0hXmZf8s9aiVtDdRfgMlb7xrzN0=
 github.com/WangYihang/http-grab v0.0.9-0.20240702132448-aa9b5a592656/go.mod h1:xAgedfN2hpCDJxpIr8ZYsrJOYNJd8TmBd6FdKGS6sTc=
 github.com/WangYihang/http-grab v0.0.9-0.20240702134905-52f181674bbb h1:u1ispynyVfCSUzVxT7JTRSi2hXIdrFVRuQOkd9MwmoM=
 github.com/WangYihang/http-grab v0.0.9-0.20240702134905-52f181674bbb/go.mod h1:xAgedfN2hpCDJxpIr8ZYsrJOYNJd8TmBd6FdKGS6sTc=
 github.com/WangYihang/http-grab v0.0.9-0.20240702141154-ab2f01aac0ae h1:VMGMi3ecoo8hqPEOndbMqA2YxJEEST16GdRx4oQzaAg=
 github.com/WangYihang/http-grab v0.0.9-0.20240702141154-ab2f01aac0ae/go.mod h1:xAgedfN2hpCDJxpIr8ZYsrJOYNJd8TmBd6FdKGS6sTc=
+github.com/WangYihang/http-grab v0.0.9-0.20240702152011-a32b6aea3959 h1:BWe9NCtHZ26eO7sQlfZfBcsOf5N+AG+nNKxJsLjICMg=
+github.com/WangYihang/http-grab v0.0.9-0.20240702152011-a32b6aea3959/go.mod h1:nqZq5VhbD57GPUEAn6mylqJj98j/pYADsvbfmnslBNo=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1 h1:HwpRHbFMcZLEVr42D4p7XBqjyuxQH5SMiErDT4WkJ2k=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1/go.mod h1:uYgXzlJ7ZpABp8OJ+exZzJJhRNQ2ASbcXHWsFqH8hp8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
