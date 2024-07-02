@@ -13,7 +13,7 @@ $ go run examples/zmap/main.go \
     --num-droplets 1 \
     --s3-access-key=******************** \
     --s3-secret-key=**************************************** \
-    --s3-bucket=cdnmon-zmap \
+    --s3-bucket=default \
     --port 80 \
     --bandwidth=100M
 ```
