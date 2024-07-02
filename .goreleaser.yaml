@@ -26,6 +26,16 @@ builds:
     goarch:
       - amd64
 
+  - id: http-task
+    main: ./examples/http/main.go
+    binary: http-task
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+
 archives:
   - format: tar.gz
     # this name template makes the OS and Arch compatible with the results of `uname`.
@@ -47,3 +57,21 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
+
+upx:
+  -
+    # Whether to enable it or not.
+    enabled: true
+
+    # Filter by build ID.
+    ids: [ "zmap-task", "http-task" ]
+
+    # Compress argument.
+    # Valid options are from '1' (faster) to '9' (better), and 'best'.
+    compress: best
+
+    # Whether to try LZMA (slower).
+    lzma: true
+
+    # Whether to try all methods and filters (slow).
+    brute: false
