@@ -15,6 +15,7 @@ import (
 
 type Scheduler struct {
 	name                 string
+	tag                  string
 	maxConcurrency       int
 	provider             provider.CloudServiceProvider
 	cso                  *api.CreateServerOptions
@@ -25,7 +26,9 @@ type Scheduler struct {
 func New(name string) *Scheduler {
 	return &Scheduler{
 		name:                 name,
+		tag:                  name,
 		maxConcurrency:       1,
+		cso:                  &api.CreateServerOptions{},
 		wg:                   &sync.WaitGroup{},
 		destroyAfterFinished: true,
 	}
@@ -54,7 +57,7 @@ func (s *Scheduler) WithProvider(provider provider.CloudServiceProvider) *Schedu
 func (s *Scheduler) FindOrCreateAnIdleExecutor() (*secureshell.SSHExecutor, error) {
 	for {
 		// Check if there is an idle server
-		for _, server := range s.provider.ListServersByTag(s.name) {
+		for _, server := range s.provider.ListServersByTag(s.tag) {
 			e := secureshell.NewSSHExecutor().
 				WithIP(server.IPv4()).
 				WithPrivateKeyPath(s.cso.PrivateKeyPath)
@@ -68,7 +71,7 @@ func (s *Scheduler) FindOrCreateAnIdleExecutor() (*secureshell.SSHExecutor, erro
 				"ps",
 				"--quiet",
 				"--filter",
-				fmt.Sprintf("label=task.label=%s", s.name),
+				fmt.Sprintf("label=task.label=%s", s.tag),
 			}, " "))
 			if err != nil {
 				log.Error("failed to run command", "error", err)
@@ -81,11 +84,13 @@ func (s *Scheduler) FindOrCreateAnIdleExecutor() (*secureshell.SSHExecutor, erro
 			}
 		}
 		// Check if the number of servers is less than max concurrency
-		servers := s.provider.ListServersByTag(s.name)
+		servers := s.provider.ListServersByTag(s.tag)
 		if len(servers) < s.maxConcurrency {
 			// Create a new server
 			log.Info("create a new server because of no idle server and not reach max concurrency")
-			server, err := s.provider.CreateServer(s.cso.WithName(fmt.Sprintf("%s-%d", s.name, len(servers))))
+			server, err := s.provider.CreateServer(
+				s.cso.WithName(fmt.Sprintf("%s-%d", s.name, len(servers))).WithTag(s.tag),
+			)
 			if err != nil {
 				log.Error("failed to create server", "error", err)
 				return nil, fmt.Errorf("failed to create server: %s", err.Error())
@@ -102,7 +107,7 @@ func (s *Scheduler) FindOrCreateAnIdleExecutor() (*secureshell.SSHExecutor, erro
 
 // A task is marked NeedRun if and only if it is not in [task.RUNNING, task.FINISHED] on any listed servers
 func (s *Scheduler) NeedRun(t task.TaskInterface) bool {
-	for _, server := range s.provider.ListServersByTag(s.name) {
+	for _, server := range s.provider.ListServersByTag(s.tag) {
 		log.Info("check task status", "task", t, "server", server.IPv4())
 		e := secureshell.NewSSHExecutor().
 			WithIP(server.IPv4()).
@@ -207,6 +212,6 @@ func (s *Scheduler) Wait() {
 	s.wg.Wait()
 	// Destroy all servers
 	if s.destroyAfterFinished {
-		s.provider.DestroyServerByTag(s.name)
+		s.provider.DestroyServerByTag(s.tag)
 	}
 }
